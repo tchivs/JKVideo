@@ -12,6 +12,7 @@ Agents should optimize for small, safe changes and preserve existing patterns.
 - State management: Zustand
 - Networking: Axios
 - Web support uses a local proxy for Bilibili endpoints
+- Android TV build is a separate compilation via `APP_VARIANT=tv`
 
 ## Repo instructions already present
 
@@ -30,11 +31,14 @@ Use the Expo commands below for development.
 ## Build / run commands
 
 ```bash
-npm run start    # expo start
-npm run android  # expo run:android
-npm run ios      # expo run:ios
-npm run web      # expo start --web
-npm run proxy    # node dev-proxy.js
+npm run start       # expo start
+npm run android     # expo run:android
+npm run ios         # expo run:ios
+npm run web         # expo start --web
+npm run proxy       # node dev-proxy.js
+npm run start:tv    # APP_VARIANT=tv expo start
+npm run build:tv    # APP_VARIANT=tv expo run:android
+npm run prebuild:tv # APP_VARIANT=tv expo prebuild -p android --no-install
 ```
 
 ### What each command is for
@@ -44,6 +48,9 @@ npm run proxy    # node dev-proxy.js
 - `ios`: Native iOS dev build.
 - `web`: Web build/runtime through Expo.
 - `proxy`: Local image/API proxy on port 3001 for web.
+- `start:tv`: Expo dev server for TV variant.
+- `build:tv`: Native Android TV build (separate package: `com.anonymous.jkvideo.tv`).
+- `prebuild:tv`: Generate TV android native directory with Leanback manifest.
 
 ## Test / lint / type-check commands
 
@@ -135,12 +142,15 @@ npx tsc --noEmit
 
 ## Useful repository hotspots
 
-- `app/` — screens and layouts
-- `components/` — reusable UI
-- `hooks/` — data-fetching and state hooks
-- `services/` — API layer
-- `store/` — Zustand stores
-- `utils/` — helper functions
+- `app/` — phone screens and layouts
+- `app-tv/` — TV screens and layouts (separate build via `APP_VARIANT=tv`)
+- `components/` — reusable UI (shared)
+- `components/tv/` — TV-specific components (TVFocusable, TVVideoPlayer, etc.)
+- `hooks/` — data-fetching and state hooks (shared)
+- `services/` — API layer (shared)
+- `store/` — Zustand stores (shared)
+- `utils/` — helper functions (shared)
+- `plugins/withAndroidTV.js` — Expo config plugin for Leanback manifest injection
 
 ## Validation checklist
 
@@ -148,3 +158,5 @@ npx tsc --noEmit
 - If you changed TypeScript code, run `npx tsc --noEmit` when practical.
 - If you changed web proxy behavior, test `npm run web` plus the proxy.
 - If you changed native-only code, test on the relevant platform build.
+- If you changed TV code (`app-tv/` or `components/tv/`), run `npm run prebuild:tv` and test on TV.
+- TV and phone builds are fully independent — changes to `app-tv/` do not affect `app/`.

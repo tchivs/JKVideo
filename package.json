@@ -1,13 +1,17 @@
 {
   "name": "jkvideo",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "proxy": "node dev-proxy.js"
+    "proxy": "node dev-proxy.js",
+    "start:tv": "APP_VARIANT=tv expo start",
+    "build:tv": "APP_VARIANT=tv expo run:android",
+    "prebuild:tv": "APP_VARIANT=tv expo prebuild -p android --no-install",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@dr.pogodin/react-native-static-server": "^0.26.0",

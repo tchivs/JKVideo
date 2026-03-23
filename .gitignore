@@ -49,3 +49,8 @@ docs/
 feature.md
 livePlan.md
 Promotion.md
+
+# Agent skills
+.agents/skills/
+.agent/skills/
+.claude/skills/

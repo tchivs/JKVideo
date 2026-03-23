@@ -5,6 +5,10 @@ on:
     branches:
       - master
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -27,6 +31,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: TypeScript type-check
+        run: npm run typecheck
 
       - name: Bump version
         id: bump
@@ -51,17 +58,44 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Expo Prebuild
+      # --- Phone APK ---
+      - name: Expo Prebuild (Phone)
         run: npx expo prebuild --platform android --no-install
 
       - name: Grant Gradle execute permission
         run: chmod +x android/gradlew
 
-      - name: Build Release APK
+      - name: Build Phone Release APK
         run: |
           cd android
           ./gradlew assembleRelease --no-daemon
 
+      - name: Rename Phone APK
+        run: |
+          mv android/app/build/outputs/apk/release/app-release.apk \
+             android/app/build/outputs/apk/release/JKVideo-v${{ steps.bump.outputs.version }}.apk
+
+      # --- TV APK ---
+      - name: Clean prebuild for TV
+        run: rm -rf android
+
+      - name: Expo Prebuild (TV)
+        run: APP_VARIANT=tv npx expo prebuild --platform android --no-install
+
+      - name: Grant Gradle execute permission (TV)
+        run: chmod +x android/gradlew
+
+      - name: Build TV Release APK
+        run: |
+          cd android
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Rename TV APK
+        run: |
+          mv android/app/build/outputs/apk/release/app-release.apk \
+             android/app/build/outputs/apk/release/JKVideo-TV-v${{ steps.bump.outputs.version }}.apk
+
+      # --- GitHub Release ---
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -69,4 +103,5 @@ jobs:
           gh release create "v${{ steps.bump.outputs.version }}" \
             --title "JKVideo v${{ steps.bump.outputs.version }}" \
             --generate-notes \
-            android/app/build/outputs/apk/release/app-release.apk
+            android/app/build/outputs/apk/release/JKVideo-v${{ steps.bump.outputs.version }}.apk \
+            android/app/build/outputs/apk/release/JKVideo-TV-v${{ steps.bump.outputs.version }}.apk

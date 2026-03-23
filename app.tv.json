@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "JKVideo TV",
+    "slug": "jkvideo-tv",
+    "version": "1.0.6",
+    "scheme": "bilibili-tv",
+    "orientation": "landscape",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "package": "com.anonymous.jkvideo.tv"
+    },
+    "plugins": [
+      "./plugins/withAndroidTV.js",
+      ["expo-router", { "root": "./app-tv" }],
+      "react-native-video",
+      "expo-screen-orientation"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

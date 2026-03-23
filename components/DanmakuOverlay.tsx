@@ -9,10 +9,18 @@ interface Props {
   screenWidth: number;
   screenHeight: number;
   visible: boolean;
+  /** 弹幕透明度 0-1，默认 1 */
+  opacity?: number;
+  /** 字体缩放倍率，默认 1 */
+  fontScale?: number;
+  /** 显示区域比例 0-1，默认 1 (全屏) */
+  areaRatio?: number;
+  /** 屏蔽的弹幕模式，1=滚动 4=底部 5=顶部 */
+  filterModes?: number[];
 }
 
-const LANE_COUNT = 5;
-const LANE_H = 28;
+const BASE_LANE_COUNT = 5;
+const BASE_LANE_H = 28;
 
 interface ActiveDanmaku {
   id: string;
@@ -22,9 +30,21 @@ interface ActiveDanmaku {
   opacity: Animated.Value;
 }
 
-export default function DanmakuOverlay({ danmakus, currentTime, screenWidth, screenHeight, visible }: Props) {
+export default function DanmakuOverlay({
+  danmakus,
+  currentTime,
+  screenWidth,
+  screenHeight,
+  visible,
+  opacity = 1,
+  fontScale = 1,
+  areaRatio = 1,
+  filterModes = [],
+}: Props) {
+  const LANE_COUNT = Math.max(1, Math.round(BASE_LANE_COUNT * areaRatio));
+  const LANE_H = Math.round(BASE_LANE_H * fontScale);
   const [activeDanmakus, setActiveDanmakus] = useState<ActiveDanmaku[]>([]);
-  const laneAvailAt = useRef<number[]>(new Array(LANE_COUNT).fill(0));
+  const laneAvailAt = useRef<number[]>(new Array(BASE_LANE_COUNT).fill(0));
   const activated = useRef<Set<string>>(new Set());
   const prevTimeRef = useRef<number>(currentTime);
   const idCounter = useRef(0);
@@ -66,6 +86,7 @@ export default function DanmakuOverlay({ danmakus, currentTime, screenWidth, scr
     const window = 0.4;
     const candidates = danmakus.filter(d => {
       const key = `${d.time}_${d.text}`;
+      if (filterModes.includes(d.mode)) return false; // 过滤屏蔽模式
       return d.time >= currentTime - window && d.time <= currentTime + window && !activated.current.has(key);
     });
 
@@ -128,12 +149,12 @@ export default function DanmakuOverlay({ danmakus, currentTime, screenWidth, scr
         return combined.slice(Math.max(0, combined.length - 30));
       });
     }
-  }, [currentTime, visible, danmakus, pickLane, screenWidth]);
+  }, [currentTime, visible, danmakus, pickLane, screenWidth, filterModes, LANE_COUNT, LANE_H]);
 
   if (!visible) return null;
 
   return (
-    <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+    <View style={[StyleSheet.absoluteFillObject, { opacity }]} pointerEvents="none">
       {activeDanmakus.map(d => {
         const fontSize = Math.min(d.item.fontSize || 25, 22);
         const isScrolling = d.item.mode === 1;
@@ -154,7 +175,7 @@ export default function DanmakuOverlay({ danmakus, currentTime, screenWidth, scr
               transform: isScrolling ? [{ translateX: d.tx }] : [],
               opacity: d.opacity,
               color: danmakuColorToCss(d.item.color),
-              fontSize,
+              fontSize: Math.min(d.item.fontSize || 25, 22) * fontScale,
               fontWeight: '700',
               textShadowColor: 'rgba(0,0,0,0.8)',
               textShadowOffset: { width: 1, height: 1 },
