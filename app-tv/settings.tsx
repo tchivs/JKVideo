@@ -9,9 +9,8 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TVFocusable } from '../components/tv/TVFocusable';
 import { TVLoginModal } from '../components/tv/TVLoginModal';
-import { TVLoginModal } from '../components/tv/TVLoginModal';
 import { useAuthStore } from '../store/authStore';
-import { useSettingsStore, PreferredCodec } from '../store/settingsStore';
+import { useSettingsStore, ALL_SB_CATEGORIES, type SponsorBlockCategory } from '../store/settingsStore';
 import { useHistoryStore } from '../store/historyStore';
 import { useCheckUpdate } from '../hooks/useCheckUpdate';
 import { TV } from '../constants/tvTheme';
@@ -58,7 +57,6 @@ export default function TVSettingsScreen() {
     dmFontScale, setDmFontScale,
     dmAreaRatio, setDmAreaRatio,
     dmFilterModes, setDmFilterModes,
-    dmFilterModes, setDmFilterModes,
     defaultQn, setDefaultQn,
     preferredCodec, setPreferredCodec,
     autoPlayNext, setAutoPlayNext,
@@ -69,9 +67,11 @@ export default function TVSettingsScreen() {
     showPlayerTime, setShowPlayerTime,
     downKeyAction, setDownKeyAction,
     nextVideoSource, setNextVideoSource,
+    sponsorBlockEnabled, setSponsorBlockEnabled,
+    sponsorBlockCategories, setSponsorBlockCategories,
   } = useSettingsStore();
 
-  const { clear: clearHistory } = useHistoryStore();
+  const { clearHistory } = useHistoryStore();
   const { currentVersion, isChecking, downloadProgress, checkUpdate } = useCheckUpdate();
   const [showLogin, setShowLogin] = useState(false);
 
@@ -427,6 +427,52 @@ export default function TVSettingsScreen() {
               );
             })}
           </View>
+        </View>
+
+        {/* ---------------- 空降助手 (SponsorBlock) ---------------- */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>空降助手 (SponsorBlock)</Text>
+
+          <View style={[styles.row, { marginBottom: TV.space.md }]}>
+            <Text style={styles.label}>自动跳过赞助/广告片段</Text>
+            <TVFocusable
+              style={[styles.option, sponsorBlockEnabled && styles.optionActive]}
+              onPress={() => setSponsorBlockEnabled(!sponsorBlockEnabled)}
+              scaleFactor={1}
+            >
+              <Text style={[styles.optionText, sponsorBlockEnabled && styles.optionTextActive]}>
+                {sponsorBlockEnabled ? '开启' : '关闭'}
+              </Text>
+            </TVFocusable>
+          </View>
+
+          {sponsorBlockEnabled && (
+            <>
+              <Text style={styles.sublabel}>跳过类别</Text>
+              <View style={[styles.optionRow, { flexWrap: 'wrap', gap: TV.space.sm }]}>
+                {ALL_SB_CATEGORIES.map(({ key, label }) => {
+                  const isActive = sponsorBlockCategories.includes(key);
+                  return (
+                    <TVFocusable
+                      key={key}
+                      style={[styles.option, isActive && styles.optionActive]}
+                      onPress={() => {
+                        const next = isActive
+                          ? sponsorBlockCategories.filter((c: SponsorBlockCategory) => c !== key)
+                          : [...sponsorBlockCategories, key];
+                        setSponsorBlockCategories(next);
+                      }}
+                      scaleFactor={1}
+                    >
+                      <Text style={[styles.optionText, isActive && styles.optionTextActive]}>
+                        {isActive ? `✓ ${label}` : label}
+                      </Text>
+                    </TVFocusable>
+                  );
+                })}
+              </View>
+            </>
+          )}
         </View>
 
         {/* ---------------- 存储清理 ---------------- */}
