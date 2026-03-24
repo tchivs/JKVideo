@@ -25,6 +25,14 @@ const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
 pkgJson.version = newVersion;
 fs.writeFileSync(pkgJsonPath, JSON.stringify(pkgJson, null, 2) + '\n');
 
+// Update app.tv.json
+const tvJsonPath = path.join(root, 'app.tv.json');
+if (fs.existsSync(tvJsonPath)) {
+  const tvJson = JSON.parse(fs.readFileSync(tvJsonPath, 'utf8'));
+  tvJson.expo.version = newVersion;
+  fs.writeFileSync(tvJsonPath, JSON.stringify(tvJson, null, 2) + '\n');
+}
+
 // Update android/app/build.gradle if it exists (skipped in CI before prebuild)
 const gradlePath = path.join(root, 'android', 'app', 'build.gradle');
 if (fs.existsSync(gradlePath)) {

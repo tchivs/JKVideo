@@ -5,6 +5,43 @@
 
 ---
 
+## [Unreleased]
+
+### TV 版支持
+
+#### 弹幕系统增强
+- 弹幕高级配置面板：透明度 / 字号 / 显示区域 / 屏蔽类型（滚动/顶部/底部）
+- 弹幕开关现全屏 & 非全屏均可用
+- DanmakuOverlay 新增 `opacity` / `fontScale` / `areaRatio` / `filterModes` props
+
+#### 全局设置持久化
+- 弹幕配置全局持久化（settingsStore → AsyncStorage `TV_SETTINGS`）
+- 默认播放清晰度全局设置（360P ~ 1080P60）
+- 播放器内修改 ↔ 设置页双向同步
+
+#### 无障碍 & 可访问性
+- TVFocusable 默认 `accessibilityRole="button"` + `accessibilityLabel` prop
+- 所有返回/搜索/清空/播放/删除按钮添加 accessibilityLabel
+- 聚焦状态改用 Animated.timing 平滑 150ms 过渡
+
+#### 性能优化
+- 所有 FlatList 添加 `windowSize` / `maxToRenderPerBatch` / `removeClippedSubviews`
+- 图片添加 `fadeDuration` 平滑加载
+- TVVideoCard / TVLiveCard 统一使用 tvTheme 设计令牌
+
+#### 健壮性
+- 排行榜加载失败显示错误状态 + "重试"按钮
+- historyStore 所有 AsyncStorage 写入/删除 try/catch 防崩溃
+- 搜索按钮加载中禁用防双击
+- 清空历史/搜索历史增加 Alert 确认
+- BackHandler 双击退出仅在首页生效
+
+#### 设计规范
+- 新增 `constants/tvTheme.ts` 集中管理设计令牌（颜色/间距/圆角/字号）
+- TVVideoCard / TVLiveCard 全面迁移至 tvTheme tokens
+
+---
+
 ## [1.0.0] — 2026-03-20
 
 ### 首个正式版本

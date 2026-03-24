@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "JKVideo",
-    "slug": "jsvideo",
+    "slug": "jkvideo",
     "version": "1.0.7",
     "scheme": "bilibili",
     "orientation": "default",
@@ -26,9 +26,6 @@
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
-        "android.permission.REQUEST_INSTALL_PACKAGES",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.REQUEST_INSTALL_PACKAGES"
       ],
       "package": "com.anonymous.jkvideo"
@@ -40,18 +37,10 @@
     "plugins": [
       "expo-router",
       "react-native-video",
-      "expo-screen-orientation",
-      "@sentry/react-native/expo"
+      "expo-screen-orientation"
     ],
     "experiments": {
       "typedRoutes": true
-    },
-    "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "eac4192a-ae80-461c-8fff-6e1a8b777bd1"
-      }
-    },
-    "owner": "jinsha"
+    }
   }
 }

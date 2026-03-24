@@ -49,4 +49,8 @@ docs/
 feature.md
 livePlan.md
 Promotion.md
-.env.local
+
+# Agent skills
+.agents/skills/
+.agent/skills/
+.claude/skills/
