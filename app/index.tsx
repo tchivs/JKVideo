@@ -428,7 +428,7 @@ export default function HomeScreen() {
               onPress={() => (isLoggedIn ? router.push('/settings' as any) : setShowLogin(true))}
             >
               {isLoggedIn && face ? (
-                <Image source={{ uri: face }} style={styles.userAvatar} />
+                <Image source={{ uri: face }} style={styles.userAvatar as any} />
               ) : (
                 <Ionicons
                   name={isLoggedIn ? "person" : "person-outline"}
@@ -551,7 +551,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 15,
-    fontWeight: "450",
+    fontWeight: "400",
     color: "#999",
   },
   tabTextActive: {

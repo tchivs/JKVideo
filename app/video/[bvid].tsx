@@ -127,7 +127,7 @@ export default function VideoDetailScreen() {
               style={[styles.tabLabel, tab === "comments" && styles.tabActive]}
             >
               评论
-              {video.stat?.reply > 0 ? ` ${formatCount(video.stat.reply)}` : ""}
+              {((video.stat?.reply) ?? 0) > 0 ? ` ${formatCount(video.stat!.reply)}` : ""}
             </Text>
             {tab === "comments" && <View style={styles.tabUnderline} />}
           </TouchableOpacity>
@@ -176,10 +176,10 @@ export default function VideoDetailScreen() {
                   <View style={styles.titleSection}>
                     <Text style={styles.title}>{video.title}</Text>
                     <View style={styles.statsRow}>
-                      <StatBadge icon="play" count={video.stat.view} />
-                      <StatBadge icon="heart" count={video.stat.like} />
-                      <StatBadge icon="star" count={video.stat.favorite} />
-                      <StatBadge icon="chatbubble" count={video.stat.reply} />
+                      <StatBadge icon="play" count={video.stat?.view ?? 0} />
+                      <StatBadge icon="heart" count={video.stat?.like ?? 0} />
+                      <StatBadge icon="star" count={video.stat?.favorite ?? 0} />
+                      <StatBadge icon="chatbubble" count={video.stat?.reply ?? 0} />
                     </View>
                   </View>
                   {video.ugc_season && (
