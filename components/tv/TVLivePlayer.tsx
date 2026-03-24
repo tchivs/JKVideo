@@ -123,7 +123,7 @@ function NativeTVLivePlayer({
           setBuffering(false);
           setError(null);
         }}
-        onError={(e) => {
+        onError={(e: any) => {
           console.warn('TV Live playback error:', e);
           setError('直播流加载失败，请尝试刷新或切换清晰度');
         }}

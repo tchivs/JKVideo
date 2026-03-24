@@ -14,7 +14,10 @@ import {
   useWindowDimensions,
   Platform,
   ScrollView,
+  Animated,
 } from 'react-native';
+// @ts-ignore
+import { useTVEventHandler } from 'react-native';
 import Video, { VideoRef } from 'react-native-video';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -66,7 +69,34 @@ interface Props {
   episodes?: EpisodeInfo[];
   /** 用户选择集数后回调，参数为 episode id */
   onEpisodeChange?: (id: string) => void;
+  /** 是否存在可自动连播的下一集 */
+  hasNextEpisode?: boolean;
+  /** 当倒计时结束或用户确认时，播放下一集事件 */
+  onAutoPlayNext?: () => void;
 }
+
+const TimeWidget = React.memo(() => {
+  const [timeStr, setTimeStr] = useState('');
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      setTimeStr(`${hh}:${mm}`);
+    };
+    updateTime();
+    const timer = setInterval(updateTime, 1000); // 秒级校准，分钟级变化
+    return () => clearInterval(timer);
+  }, []);
+
+  if (!timeStr) return null;
+  return (
+    <View style={styles.timeWidgetContainer}>
+      <Text style={styles.timeWidgetText}>{timeStr}</Text>
+    </View>
+  );
+});
 
 /**
  * TV 版视频播放器。
@@ -87,6 +117,8 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
       initialTime,
       episodes: episodesProp,
       onEpisodeChange,
+      hasNextEpisode,
+      onAutoPlayNext,
     }: Props,
     ref,
   ) {
@@ -132,9 +164,56 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
     const dmFilterModes = useSettingsStore(s => s.dmFilterModes);
     const setDmFilterModes = useSettingsStore(s => s.setDmFilterModes);
 
+    const {
+      autoPlayNext,
+      ffPreview,
+      miniProgressBar,
+      autoHideControls,
+      showPlayerTime,
+      downKeyAction,
+    } = useSettingsStore();
+
     const [error, setError] = useState<string | null>(null);
 
     const videoRef = useRef<VideoRef>(null);
+
+    // 自动连播状态与动画
+    const [autoPlayCountdown, setAutoPlayCountdown] = useState<number | null>(null);
+    const autoPlayScaleAnim = useRef(new Animated.Value(1)).current;
+
+    const startAutoPlay = useCallback(() => {
+      if (!hasNextEpisode) return;
+      setAutoPlayCountdown(5);
+    }, [hasNextEpisode]);
+
+    const cancelAutoPlay = useCallback(() => {
+      setAutoPlayCountdown(null);
+    }, []);
+
+    useEffect(() => {
+      if (autoPlayCountdown === null) return;
+      
+      if (autoPlayCountdown <= 0) {
+        setAutoPlayCountdown(null);
+        onAutoPlayNext?.();
+        return;
+      }
+      
+      // 触发弹簧缩放动画
+      autoPlayScaleAnim.setValue(1.5);
+      Animated.spring(autoPlayScaleAnim, {
+        toValue: 1,
+        friction: 4,
+        tension: 100,
+        useNativeDriver: true,
+      }).start();
+
+      const timer = setTimeout(() => {
+        setAutoPlayCountdown(c => (c !== null ? c - 1 : null));
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }, [autoPlayCountdown, onAutoPlayNext, autoPlayScaleAnim]);
 
     useImperativeHandle(ref, () => ({
       seek: (t: number) => videoRef.current?.seek(t),
@@ -179,16 +258,39 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
     // 控制栏自动隐藏
     const resetHideTimer = useCallback(() => {
       if (hideTimer.current) clearTimeout(hideTimer.current);
-      hideTimer.current = setTimeout(
-        () => setShowControls(false),
-        HIDE_DELAY,
-      );
-    }, []);
+      if (autoHideControls) {
+        hideTimer.current = setTimeout(
+          () => setShowControls(false),
+          HIDE_DELAY,
+        );
+      }
+    }, [autoHideControls]);
 
     const showAndReset = useCallback(() => {
       setShowControls(true);
       resetHideTimer();
     }, [resetHideTimer]);
+
+    // TV 原生按键劫持 (处理下键换绑)
+    useTVEventHandler((evt: any) => {
+      if (!evt || !evt.eventType) return;
+      if (downKeyAction === 'nextVideo') {
+        const isMenuOpen = showQuality || showSpeed || showDanmakuConfig || showEpisodes;
+        if (evt.eventType === 'menu') {
+          showAndReset();
+        } else if (evt.eventType === 'down' && !isMenuOpen) {
+          // 此时屏蔽原生向下寻焦，直接起播下一个
+          if (hasNextEpisode && onAutoPlayNext) {
+            onAutoPlayNext();
+          }
+        }
+      } else {
+        // 默认情况：如果本来是下键显示控制栏（如果是全屏聚焦状态）
+        if (evt.eventType === 'down' && !showControls) {
+          showAndReset();
+        }
+      }
+    });
 
     useEffect(() => {
       resetHideTimer();
@@ -260,6 +362,9 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
                 videoRef.current?.seek(initialTime);
               }
             }}
+            onEnd={() => {
+              if (hasNextEpisode && autoPlayNext) startAutoPlay();
+            }}
             onError={(e) => {
               if (currentQn === 126) {
                 onQualityChange(80);
@@ -306,13 +411,15 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
           </View>
         )}
 
-        {showControls && (
+        {showControls ? (
           <>
             <LinearGradient
               colors={['rgba(0,0,0,0.55)', 'transparent']}
               style={styles.topBar}
               pointerEvents="box-none"
-            />
+            >
+              {showPlayerTime && <TimeWidget />}
+            </LinearGradient>
 
             {/* 中央播放/暂停图标 */}
             <View style={styles.centerBtn} pointerEvents="none">
@@ -441,6 +548,17 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
               </View>
             </LinearGradient>
           </>
+        ) : (
+          miniProgressBar && !paused && duration > 0 ? (
+            <View style={styles.miniProgressBarContainer} pointerEvents="none">
+              <View
+                style={[
+                  styles.miniProgressBarFill,
+                  { width: `${progressRatio * 100}%` as any },
+                ]}
+              />
+            </View>
+          ) : null
         )}
 
         {/* 清晰度选择面板 */}
@@ -682,6 +800,43 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
             </View>
           </View>
         )}
+
+        {/* 自动连播浮层 */}
+        {autoPlayCountdown !== null && (
+          <View style={styles.autoPlayOverlay}>
+            <View style={styles.autoPlayCard}>
+              <Text style={styles.autoPlayTitle}>即将播放下一集</Text>
+              <Animated.Text
+                style={[
+                  styles.autoPlayCount,
+                  { transform: [{ scale: autoPlayScaleAnim }] },
+                ]}
+              >
+                {autoPlayCountdown}
+              </Animated.Text>
+              <View style={styles.autoPlayActions}>
+                <TVFocusable
+                  style={styles.autoPlayBtn}
+                  onPress={() => {
+                    cancelAutoPlay();
+                    onAutoPlayNext?.();
+                  }}
+                  hasTVPreferredFocus
+                  scaleFactor={1.1}
+                >
+                  <Text style={styles.autoPlayBtnText}>立即播放</Text>
+                </TVFocusable>
+                <TVFocusable
+                  style={[styles.autoPlayBtn, styles.autoPlayBtnCancel]}
+                  onPress={cancelAutoPlay}
+                  scaleFactor={1.1}
+                >
+                  <Text style={styles.autoPlayBtnText}>取消</Text>
+                </TVFocusable>
+              </View>
+            </View>
+          </View>
+        )}
       </View>
     );
   },
@@ -700,8 +855,25 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 60,
+    height: 80,
     zIndex: 2,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-start',
+    padding: 24,
+  },
+  timeWidgetContainer: {
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  timeWidgetText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 1,
+    fontVariant: ['tabular-nums'],
   },
   errorContainer: {
     position: 'absolute',
@@ -770,6 +942,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     marginTop: 8,
+  },
+  miniProgressBarContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  miniProgressBarFill: {
+    height: '100%',
+    backgroundColor: TV.color.accent,
   },
   ctrlBtn: {
     paddingHorizontal: 12,
@@ -932,6 +1116,53 @@ const styles = StyleSheet.create({
   },
   episodeItemTextActive: {
     color: TV.color.accent,
+    fontWeight: '600',
+  },
+  // 自动连播
+  autoPlayOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 20,
+  },
+  autoPlayCard: {
+    backgroundColor: '#1a1a1a',
+    padding: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  autoPlayTitle: {
+    fontSize: 20,
+    color: '#ccc',
+    marginBottom: 16,
+  },
+  autoPlayCount: {
+    fontSize: 72,
+    fontWeight: 'bold',
+    color: TV.color.accent,
+    marginBottom: 32,
+  },
+  autoPlayActions: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  autoPlayBtn: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: TV.color.accent,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  autoPlayBtnCancel: {
+    backgroundColor: '#333',
+  },
+  autoPlayBtnText: {
+    fontSize: 16,
+    color: '#fff',
     fontWeight: '600',
   },
 });
