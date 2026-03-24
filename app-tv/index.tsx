@@ -22,6 +22,7 @@ import { useLiveList } from '../hooks/useLiveList';
 import { useAuthStore } from '../store/authStore';
 import { proxyImageUrl } from '../utils/imageUrl';
 import type { VideoItem, LiveRoom } from '../services/types';
+import { TV } from '../constants/tvTheme';
 
 type TabKey = 'hot' | 'live';
 
@@ -305,34 +306,32 @@ export default function TVHomeScreen(): React.JSX.Element {
   );
 }
 
-const SIDEBAR_W = 80;
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: '#121212',
+    backgroundColor: TV.color.bg,
   },
   sidebar: {
-    width: SIDEBAR_W,
-    backgroundColor: '#1a1a1a',
-    paddingVertical: 16,
+    width: TV.sidebar.width,
+    backgroundColor: TV.color.surfaceAlt,
+    paddingVertical: TV.space.lg,
     alignItems: 'center',
     borderRightWidth: StyleSheet.hairlineWidth,
-    borderRightColor: '#333',
+    borderRightColor: TV.color.border,
   },
   logo: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#00AEEC',
-    marginBottom: 24,
+    color: TV.color.accent,
+    marginBottom: TV.space.xxl - TV.space.sm,
   },
   sidebarItem: {
-    width: SIDEBAR_W - 16,
+    width: TV.sidebar.width - TV.space.lg,
     alignItems: 'center',
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginBottom: 4,
+    paddingVertical: TV.space.md,
+    borderRadius: TV.radius.md,
+    marginBottom: TV.space.xs,
     borderWidth: 2,
     borderColor: 'transparent',
   },
@@ -340,57 +339,57 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,174,236,0.1)',
   },
   sidebarText: {
-    fontSize: 10,
-    color: '#888',
-    marginTop: 4,
+    fontSize: TV.font.xs,
+    color: TV.color.textTertiary,
+    marginTop: TV.space.xs,
   },
   sidebarTextActive: {
-    color: '#00AEEC',
+    color: TV.color.accent,
     fontWeight: '600',
   },
   content: {
     flex: 1,
   },
   listContent: {
-    padding: 8,
+    padding: TV.layout.listPadding,
   },
   row: {
-    gap: 8,
+    gap: TV.layout.gridGap,
     paddingHorizontal: 0,
   },
   loader: {
-    marginVertical: 20,
+    marginVertical: TV.space.xl,
   },
   avatar: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#333',
+    backgroundColor: TV.color.placeholder,
   },
   areaBar: {
     flexDirection: 'row',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
+    gap: TV.space.sm - 2,
+    paddingVertical: TV.space.sm,
+    paddingHorizontal: TV.space.xs,
   },
   areaChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#2a2a2a',
+    paddingHorizontal: TV.space.md,
+    paddingVertical: TV.space.sm - 2,
+    borderRadius: TV.radius.xl,
+    backgroundColor: TV.color.surfaceLight,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   areaChipActive: {
-    backgroundColor: '#1a3040',
-    borderColor: '#00AEEC',
+    backgroundColor: TV.color.accentBg,
+    borderColor: TV.color.accent,
   },
   areaChipText: {
-    fontSize: 12,
-    color: '#aaa',
+    fontSize: TV.font.md,
+    color: TV.color.textSecondary,
   },
   areaChipTextActive: {
-    color: '#00AEEC',
+    color: TV.color.accent,
     fontWeight: '600',
   },
 });

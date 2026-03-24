@@ -14,6 +14,7 @@ import { TVFocusable } from '../components/tv/TVFocusable';
 import { TVFadeIn } from '../components/tv/TVFadeIn';
 import { useDownloadStore, type DownloadTask } from '../store/downloadStore';
 import { proxyImageUrl } from '../utils/imageUrl';
+import { TV } from '../constants/tvTheme';
 
 function formatFileSize(bytes?: number): string {
   if (!bytes || bytes <= 0) return '';
@@ -147,45 +148,45 @@ export default function TVDownloadsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#121212' },
+  container: { flex: 1, backgroundColor: TV.color.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#1a1a1a',
+    paddingHorizontal: TV.layout.contentPaddingH,
+    paddingVertical: TV.layout.headerPaddingV,
+    backgroundColor: TV.color.surfaceAlt,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#333',
-    gap: 10,
+    borderBottomColor: TV.color.border,
+    gap: TV.space.md - 2,
   },
   backBtn: {
-    padding: 6,
-    borderRadius: 4,
+    padding: TV.space.sm - 2,
+    borderRadius: TV.radius.sm,
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  headerTitle: { fontSize: 18, fontWeight: '600', color: '#e0e0e0' },
-  listContent: { padding: 16 },
+  headerTitle: { fontSize: TV.font.title, fontWeight: '600', color: TV.color.textPrimary },
+  listContent: { padding: TV.layout.contentPaddingH },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 10,
+    gap: TV.space.md,
+    paddingVertical: TV.space.md - 2,
   },
   cover: {
     width: 120,
     height: 68,
-    borderRadius: 6,
-    backgroundColor: '#333',
+    borderRadius: TV.radius.sm + 2,
+    backgroundColor: TV.color.placeholder,
   },
   info: { flex: 1 },
   title: {
-    fontSize: 13,
-    color: '#e0e0e0',
+    fontSize: TV.font.base,
+    color: TV.color.textPrimary,
     lineHeight: 18,
-    marginBottom: 4,
+    marginBottom: TV.space.xs,
   },
-  qdesc: { fontSize: 12, color: '#888', marginBottom: 4 },
+  qdesc: { fontSize: TV.font.md, color: TV.color.textTertiary, marginBottom: TV.space.xs },
   progressWrap: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -195,33 +196,33 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 3,
     borderRadius: 2,
-    backgroundColor: '#333',
+    backgroundColor: TV.color.placeholder,
     overflow: 'hidden',
   },
   progressFill: {
     height: 3,
-    backgroundColor: '#00AEEC',
+    backgroundColor: TV.color.accent,
     borderRadius: 2,
   },
-  progressTxt: { fontSize: 11, color: '#888', marginLeft: 6 },
-  errorTxt: { fontSize: 12, color: '#ff4757', marginTop: 2 },
-  actions: { alignItems: 'center', gap: 8 },
+  progressTxt: { fontSize: TV.font.sm, color: TV.color.textTertiary, marginLeft: TV.space.sm - 2 },
+  errorTxt: { fontSize: TV.font.md, color: TV.color.danger, marginTop: 2 },
+  actions: { alignItems: 'center', gap: TV.space.sm },
   actionBtn: {
-    padding: 6,
-    borderRadius: 4,
+    padding: TV.space.sm - 2,
+    borderRadius: TV.radius.sm,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   separator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: '#333',
+    backgroundColor: TV.color.border,
   },
   empty: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: TV.space.md,
   },
-  emptyText: { fontSize: 15, color: '#555' },
-  emptyHint: { fontSize: 12, color: '#444' },
+  emptyText: { fontSize: TV.font.xl, color: '#555' },
+  emptyHint: { fontSize: TV.font.md, color: '#444' },
 });

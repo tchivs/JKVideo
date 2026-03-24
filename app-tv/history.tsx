@@ -14,6 +14,7 @@ import { TVFadeIn } from '../components/tv/TVFadeIn';
 import { useHistoryStore, type HistoryItem } from '../store/historyStore';
 import { proxyImageUrl } from '../utils/imageUrl';
 import { formatDuration } from '../utils/format';
+import { TV } from '../constants/tvTheme';
 
 /**
  * TV 版观看历史页。
@@ -141,43 +142,43 @@ export default function TVHistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#121212' },
+  container: { flex: 1, backgroundColor: TV.color.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#1a1a1a',
+    paddingHorizontal: TV.layout.contentPaddingH,
+    paddingVertical: TV.layout.headerPaddingV,
+    backgroundColor: TV.color.surfaceAlt,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#333',
-    gap: 10,
+    borderBottomColor: TV.color.border,
+    gap: TV.space.md - 2,
   },
   backBtn: {
-    padding: 6,
-    borderRadius: 4,
+    padding: TV.space.sm - 2,
+    borderRadius: TV.radius.sm,
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  headerTitle: { fontSize: 18, fontWeight: '600', color: '#e0e0e0' },
+  headerTitle: { fontSize: TV.font.title, fontWeight: '600', color: TV.color.textPrimary },
   clearBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 4,
+    gap: TV.space.xs,
+    paddingHorizontal: TV.space.md,
+    paddingVertical: TV.space.sm - 2,
+    borderRadius: TV.radius.sm,
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  clearText: { fontSize: 13, color: '#888' },
-  listContent: { padding: 12 },
-  gridRow: { gap: 10 },
+  clearText: { fontSize: TV.font.base, color: TV.color.textTertiary },
+  listContent: { padding: TV.space.md },
+  gridRow: { gap: TV.space.md - 2 },
   row: {
     flex: 1,
-    marginBottom: 10,
-    borderRadius: 8,
+    marginBottom: TV.space.md - 2,
+    borderRadius: TV.radius.md,
     overflow: 'hidden',
-    backgroundColor: '#1e1e1e',
+    backgroundColor: TV.color.surface,
     borderWidth: 2,
     borderColor: 'transparent',
   },
@@ -185,18 +186,18 @@ const styles = StyleSheet.create({
   thumb: {
     width: '100%',
     aspectRatio: 16 / 9,
-    backgroundColor: '#333',
+    backgroundColor: TV.color.placeholder,
   },
   durationBadge: {
     position: 'absolute',
-    bottom: 6,
-    right: 6,
+    bottom: TV.space.sm - 2,
+    right: TV.space.sm - 2,
     backgroundColor: 'rgba(0,0,0,0.7)',
     borderRadius: 3,
-    paddingHorizontal: 4,
+    paddingHorizontal: TV.space.xs,
     paddingVertical: 1,
   },
-  durationText: { color: '#fff', fontSize: 11 },
+  durationText: { color: TV.color.white, fontSize: TV.font.sm },
   progressTrack: {
     position: 'absolute',
     bottom: 0,
@@ -207,23 +208,23 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: 3,
-    backgroundColor: '#00AEEC',
+    backgroundColor: TV.color.accent,
   },
-  info: { padding: 8 },
+  info: { padding: TV.space.sm },
   title: {
-    fontSize: 13,
-    color: '#e0e0e0',
+    fontSize: TV.font.base,
+    color: TV.color.textPrimary,
     lineHeight: 18,
-    marginBottom: 4,
+    marginBottom: TV.space.xs,
   },
-  meta: { fontSize: 11, color: '#888', marginBottom: 2 },
-  time: { fontSize: 10, color: '#666' },
+  meta: { fontSize: TV.font.sm, color: TV.color.textTertiary, marginBottom: 2 },
+  time: { fontSize: TV.font.xs, color: TV.color.textDisabled },
   empty: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: TV.space.md,
   },
-  emptyText: { fontSize: 15, color: '#555' },
-  emptyHint: { fontSize: 12, color: '#444' },
+  emptyText: { fontSize: TV.font.xl, color: '#555' },
+  emptyHint: { fontSize: TV.font.md, color: '#444' },
 });

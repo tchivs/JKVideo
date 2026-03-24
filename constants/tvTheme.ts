@@ -74,6 +74,17 @@ export const TV = {
     /** 列表项交错延迟 */
     stagger: 60,
   },
+  // ── 布局 ──
+  layout: {
+    /** 网格列间距 */
+    gridGap: 8,
+    /** 列表内边距 */
+    listPadding: 8,
+    /** 内容区水平内边距 */
+    contentPaddingH: 16,
+    /** Header 垂直内边距 */
+    headerPaddingV: 12,
+  },
   // ── 侧边栏 ──
   sidebar: {
     width: 80,
