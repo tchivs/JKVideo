@@ -44,6 +44,12 @@ export interface ExtendedSettings {
   nextVideoSource: 'uploader' | 'recommend';
   sponsorBlockEnabled: boolean;
   sponsorBlockCategories: SponsorBlockCategory[];
+  /** 视频标题屏蔽关键词 */
+  blockedKeywords: string[];
+  /** 屏蔽的 UP主 mid 列表 */
+  blockedUps: string[];
+  /** 弹幕屏蔽关键词 */
+  dmBlockKeywords: string[];
 }
 
 interface PersistedSettings extends DanmakuSettings, ExtendedSettings {
@@ -75,6 +81,9 @@ interface SettingsState extends DanmakuSettings, ExtendedSettings {
   setNextVideoSource: (v: 'uploader' | 'recommend') => Promise<void>;
   setSponsorBlockEnabled: (v: boolean) => Promise<void>;
   setSponsorBlockCategories: (v: SponsorBlockCategory[]) => Promise<void>;
+  setBlockedKeywords: (v: string[]) => Promise<void>;
+  setBlockedUps: (v: string[]) => Promise<void>;
+  setDmBlockKeywords: (v: string[]) => Promise<void>;
 
   restore: () => Promise<void>;
 }
@@ -110,6 +119,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   nextVideoSource: 'uploader',
   sponsorBlockEnabled: true,
   sponsorBlockCategories: ['sponsor', 'selfpromo'] as SponsorBlockCategory[],
+  blockedKeywords: [] as string[],
+  blockedUps: [] as string[],
+  dmBlockKeywords: [] as string[],
 
   setCoverQuality: async (q) => {
     try { await AsyncStorage.setItem('COVER_QUALITY', q); } catch { /* noop */ }
@@ -158,6 +170,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   setNextVideoSource: async (v) => { await persistTvSettings({ nextVideoSource: v }); set({ nextVideoSource: v }); },
   setSponsorBlockEnabled: async (v) => { await persistTvSettings({ sponsorBlockEnabled: v } as any); set({ sponsorBlockEnabled: v }); },
   setSponsorBlockCategories: async (v) => { await persistTvSettings({ sponsorBlockCategories: v } as any); set({ sponsorBlockCategories: v }); },
+  setBlockedKeywords: async (v) => { await persistTvSettings({ blockedKeywords: v } as any); set({ blockedKeywords: v }); },
+  setBlockedUps: async (v) => { await persistTvSettings({ blockedUps: v } as any); set({ blockedUps: v }); },
+  setDmBlockKeywords: async (v) => { await persistTvSettings({ dmBlockKeywords: v } as any); set({ dmBlockKeywords: v }); },
 
   restore: async () => {
     try {
@@ -188,6 +203,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
           ...(typeof s.nextVideoSource === 'string' && { nextVideoSource: s.nextVideoSource as any }),
           ...(typeof s.sponsorBlockEnabled === 'boolean' && { sponsorBlockEnabled: s.sponsorBlockEnabled }),
           ...(Array.isArray(s.sponsorBlockCategories) && { sponsorBlockCategories: s.sponsorBlockCategories }),
+          ...(Array.isArray(s.blockedKeywords) && { blockedKeywords: s.blockedKeywords }),
+          ...(Array.isArray(s.blockedUps) && { blockedUps: s.blockedUps }),
+          ...(Array.isArray(s.dmBlockKeywords) && { dmBlockKeywords: s.dmBlockKeywords }),
         });
       }
     } catch { /* noop */ }

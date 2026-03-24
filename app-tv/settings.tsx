@@ -69,6 +69,9 @@ export default function TVSettingsScreen() {
     nextVideoSource, setNextVideoSource,
     sponsorBlockEnabled, setSponsorBlockEnabled,
     sponsorBlockCategories, setSponsorBlockCategories,
+    blockedKeywords, setBlockedKeywords,
+    blockedUps, setBlockedUps,
+    dmBlockKeywords, setDmBlockKeywords,
   } = useSettingsStore();
 
   const { clearHistory } = useHistoryStore();
@@ -473,6 +476,71 @@ export default function TVSettingsScreen() {
               </View>
             </>
           )}
+        </View>
+
+        {/* ---------------- 内容过滤 ---------------- */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>内容过滤</Text>
+
+          {/* 视频标题屏蔽 */}
+          <View style={[styles.row, { marginBottom: TV.space.md }]}>
+            <Text style={styles.label}>视频标题屏蔽词 ({blockedKeywords.length})</Text>
+            {blockedKeywords.length > 0 && (
+              <TVFocusable
+                style={styles.option}
+                onPress={() => setBlockedKeywords([])}
+                scaleFactor={1}
+              >
+                <Text style={styles.optionText}>清空</Text>
+              </TVFocusable>
+            )}
+          </View>
+          {blockedKeywords.length > 0 && (
+            <View style={[styles.optionRow, { flexWrap: 'wrap', gap: TV.space.sm, marginBottom: TV.space.md }]}>
+              {blockedKeywords.map((kw, i) => (
+                <TVFocusable
+                  key={kw + i}
+                  style={[styles.option, styles.optionActive]}
+                  onPress={() => setBlockedKeywords(blockedKeywords.filter((_, j) => j !== i))}
+                  scaleFactor={1}
+                >
+                  <Text style={[styles.optionText, styles.optionTextActive]}>✕ {kw}</Text>
+                </TVFocusable>
+              ))}
+            </View>
+          )}
+
+          {/* 弹幕屏蔽词 */}
+          <View style={[styles.row, { marginBottom: TV.space.md }]}>
+            <Text style={styles.label}>弹幕屏蔽关键词 ({dmBlockKeywords.length})</Text>
+            {dmBlockKeywords.length > 0 && (
+              <TVFocusable
+                style={styles.option}
+                onPress={() => setDmBlockKeywords([])}
+                scaleFactor={1}
+              >
+                <Text style={styles.optionText}>清空</Text>
+              </TVFocusable>
+            )}
+          </View>
+          {dmBlockKeywords.length > 0 && (
+            <View style={[styles.optionRow, { flexWrap: 'wrap', gap: TV.space.sm, marginBottom: TV.space.md }]}>
+              {dmBlockKeywords.map((kw, i) => (
+                <TVFocusable
+                  key={kw + i}
+                  style={[styles.option, styles.optionActive]}
+                  onPress={() => setDmBlockKeywords(dmBlockKeywords.filter((_, j) => j !== i))}
+                  scaleFactor={1}
+                >
+                  <Text style={[styles.optionText, styles.optionTextActive]}>✕ {kw}</Text>
+                </TVFocusable>
+              ))}
+            </View>
+          )}
+
+          <Text style={[styles.sublabel, { marginTop: TV.space.sm }]}>
+            提示: 在搜索页输入关键词后长按即可添加到屏蔽列表
+          </Text>
         </View>
 
         {/* ---------------- 存储清理 ---------------- */}
