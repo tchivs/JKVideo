@@ -2,7 +2,7 @@
   "expo": {
     "name": "JKVideo TV",
     "slug": "jkvideo-tv",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "scheme": "bilibili-tv",
     "orientation": "landscape",
     "icon": "./assets/icon.png",
