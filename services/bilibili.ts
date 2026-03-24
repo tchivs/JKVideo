@@ -591,3 +591,43 @@ export async function getBangumiFollows(pn = 1, ps = 20): Promise<{ items: Video
     return { items: [], hasMore: false };
   }
 }
+
+// ─── BilibiliSponsorBlock 空降助手 ───────────────────────────────────
+
+const SPONSOR_BLOCK_API = 'https://bsbsb.top/api';
+
+export interface SponsorSegment {
+  segment: [number, number]; // [startSec, endSec]
+  UUID: string;
+  category: string;
+  actionType: 'skip' | 'mute' | 'full' | 'poi' | string;
+  votes: number;
+}
+
+/**
+ * 从 BilibiliSponsorBlock (bsbsb.top) 获取指定视频的赞助/广告片段。
+ * 404 代表该视频无数据，不视为异常。
+ */
+export async function getSponsorSegments(
+  bvid: string,
+  categories?: string[],
+): Promise<SponsorSegment[]> {
+  try {
+    const params: Record<string, string> = { videoID: bvid };
+    if (categories && categories.length > 0) {
+      // API 支持 categories 数组以 JSON 格式传递
+      params.categories = JSON.stringify(categories);
+    }
+    const res = await axios.get(`${SPONSOR_BLOCK_API}/skipSegments`, {
+      params,
+      timeout: 5000,
+    });
+    if (!Array.isArray(res.data)) return [];
+    return res.data as SponsorSegment[];
+  } catch (e: any) {
+    // 404 = 无数据，静默处理
+    if (e?.response?.status === 404) return [];
+    console.warn('getSponsorSegments failed:', e?.message);
+    return [];
+  }
+}

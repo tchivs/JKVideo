@@ -27,6 +27,7 @@ import { formatDuration } from '../../utils/format';
 import DanmakuOverlay from '../DanmakuOverlay';
 import { TVFocusable } from './TVFocusable';
 import { useSettingsStore } from '../../store/settingsStore';
+import { getSponsorSegments, type SponsorSegment } from '../../services/bilibili';
 import { TV } from '../../constants/tvTheme';
 
 const HIDE_DELAY = 5000;
@@ -111,6 +112,7 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
       currentQn,
       onQualityChange,
       style,
+      bvid,
       danmakus,
       isFullscreen,
       onTimeUpdate,
@@ -171,11 +173,50 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
       autoHideControls,
       showPlayerTime,
       downKeyAction,
+      sponsorBlockEnabled,
+      sponsorBlockCategories,
     } = useSettingsStore();
 
     const [error, setError] = useState<string | null>(null);
 
     const videoRef = useRef<VideoRef>(null);
+
+    // ─── SponsorBlock 空降助手引擎 ─────────────────────────────────
+    const [sbSegments, setSbSegments] = useState<SponsorSegment[]>([]);
+    const sbSkippedRef = useRef<Set<string>>(new Set());
+    const [sbSkipNotice, setSbSkipNotice] = useState<string | null>(null);
+
+    useEffect(() => {
+      if (!sponsorBlockEnabled || !bvid) {
+        setSbSegments([]);
+        return;
+      }
+      sbSkippedRef.current.clear();
+      getSponsorSegments(bvid, sponsorBlockCategories).then(segs => {
+        setSbSegments(segs.filter(s => s.actionType === 'skip'));
+      });
+    }, [bvid, sponsorBlockEnabled, sponsorBlockCategories]);
+
+    const checkSponsorBlock = useCallback((ct: number) => {
+      if (!sponsorBlockEnabled || sbSegments.length === 0) return;
+      for (const seg of sbSegments) {
+        const [start, end] = seg.segment;
+        if (ct >= start && ct < end - 0.5 && !sbSkippedRef.current.has(seg.UUID)) {
+          sbSkippedRef.current.add(seg.UUID);
+          videoRef.current?.seek(end);
+          const catLabels: Record<string, string> = {
+            sponsor: '\u8d5e\u52a9/\u5e7f\u544a', selfpromo: '\u81ea\u6211\u63a8\u5e7f',
+            interaction: '\u4e92\u52a8\u63d0\u9192', intro: '\u7247\u5934',
+            outro: '\u7247\u5c3e', preview: '\u5185\u5bb9\u9884\u89c8',
+            filler: '\u586b\u5145\u5185\u5bb9', music_offtopic: '\u79bb\u9898\u97f3\u4e50',
+          };
+          const label = catLabels[seg.category] || seg.category;
+          setSbSkipNotice(`\u2708\uFE0F \u5DF2\u8DF3\u8FC7: ${label}`);
+          setTimeout(() => setSbSkipNotice(null), 2500);
+          break;
+        }
+      }
+    }, [sponsorBlockEnabled, sbSegments]);
 
     // 自动连播状态与动画
     const [autoPlayCountdown, setAutoPlayCountdown] = useState<number | null>(null);
@@ -356,6 +397,7 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
               if (dur > 0) setDuration(dur);
               setBuffered(buf);
               onTimeUpdate?.(ct);
+              checkSponsorBlock(ct);
             }}
             onLoad={() => {
               if (initialTime && initialTime > 0) {
@@ -801,6 +843,13 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
           </View>
         )}
 
+        {/* SponsorBlock 跳过提示 */}
+        {sbSkipNotice && (
+          <View style={styles.sbNotice}>
+            <Text style={styles.sbNoticeText}>{sbSkipNotice}</Text>
+          </View>
+        )}
+
         {/* 自动连播浮层 */}
         {autoPlayCountdown !== null && (
           <View style={styles.autoPlayOverlay}>
@@ -1116,6 +1165,22 @@ const styles = StyleSheet.create({
   },
   episodeItemTextActive: {
     color: TV.color.accent,
+    fontWeight: '600',
+  },
+  // SponsorBlock 跳过提示
+  sbNotice: {
+    position: 'absolute',
+    top: TV.space.xl + TV.space.lg,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    paddingHorizontal: TV.space.xl,
+    paddingVertical: TV.space.sm,
+    borderRadius: TV.radius.pill,
+    zIndex: 25,
+  },
+  sbNoticeText: {
+    color: TV.color.white,
+    fontSize: TV.font.lg,
     fontWeight: '600',
   },
   // 自动连播

@@ -18,6 +18,19 @@ interface DanmakuSettings {
 
 export type PreferredCodec = 'auto' | 'avc' | 'hevc' | 'av1';
 
+export type SponsorBlockCategory = 'sponsor' | 'selfpromo' | 'interaction' | 'intro' | 'outro' | 'preview' | 'filler' | 'music_offtopic';
+
+export const ALL_SB_CATEGORIES: { key: SponsorBlockCategory; label: string }[] = [
+  { key: 'sponsor', label: '赞助/广告' },
+  { key: 'selfpromo', label: '自我推广' },
+  { key: 'interaction', label: '互动提醒' },
+  { key: 'intro', label: '片头' },
+  { key: 'outro', label: '片尾' },
+  { key: 'preview', label: '内容预览' },
+  { key: 'filler', label: '填充内容' },
+  { key: 'music_offtopic', label: '离题音乐' },
+];
+
 export interface ExtendedSettings {
   preferredCodec: PreferredCodec;
   autoPlayNext: boolean;
@@ -29,6 +42,8 @@ export interface ExtendedSettings {
   partitionOrder: number[];
   downKeyAction: 'controls' | 'nextVideo';
   nextVideoSource: 'uploader' | 'recommend';
+  sponsorBlockEnabled: boolean;
+  sponsorBlockCategories: SponsorBlockCategory[];
 }
 
 interface PersistedSettings extends DanmakuSettings, ExtendedSettings {
@@ -58,6 +73,8 @@ interface SettingsState extends DanmakuSettings, ExtendedSettings {
   setPartitionOrder: (v: number[]) => Promise<void>;
   setDownKeyAction: (v: 'controls' | 'nextVideo') => Promise<void>;
   setNextVideoSource: (v: 'uploader' | 'recommend') => Promise<void>;
+  setSponsorBlockEnabled: (v: boolean) => Promise<void>;
+  setSponsorBlockCategories: (v: SponsorBlockCategory[]) => Promise<void>;
 
   restore: () => Promise<void>;
 }
@@ -91,6 +108,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   partitionOrder: [],
   downKeyAction: 'controls',
   nextVideoSource: 'uploader',
+  sponsorBlockEnabled: true,
+  sponsorBlockCategories: ['sponsor', 'selfpromo'] as SponsorBlockCategory[],
 
   setCoverQuality: async (q) => {
     try { await AsyncStorage.setItem('COVER_QUALITY', q); } catch { /* noop */ }
@@ -137,6 +156,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   setPartitionOrder: async (v) => { await persistTvSettings({ partitionOrder: v }); set({ partitionOrder: v }); },
   setDownKeyAction: async (v) => { await persistTvSettings({ downKeyAction: v }); set({ downKeyAction: v }); },
   setNextVideoSource: async (v) => { await persistTvSettings({ nextVideoSource: v }); set({ nextVideoSource: v }); },
+  setSponsorBlockEnabled: async (v) => { await persistTvSettings({ sponsorBlockEnabled: v } as any); set({ sponsorBlockEnabled: v }); },
+  setSponsorBlockCategories: async (v) => { await persistTvSettings({ sponsorBlockCategories: v } as any); set({ sponsorBlockCategories: v }); },
 
   restore: async () => {
     try {
@@ -165,6 +186,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
           ...(Array.isArray(s.partitionOrder) && { partitionOrder: s.partitionOrder }),
           ...(typeof s.downKeyAction === 'string' && { downKeyAction: s.downKeyAction as any }),
           ...(typeof s.nextVideoSource === 'string' && { nextVideoSource: s.nextVideoSource as any }),
+          ...(typeof s.sponsorBlockEnabled === 'boolean' && { sponsorBlockEnabled: s.sponsorBlockEnabled }),
+          ...(Array.isArray(s.sponsorBlockCategories) && { sponsorBlockCategories: s.sponsorBlockCategories }),
         });
       }
     } catch { /* noop */ }
