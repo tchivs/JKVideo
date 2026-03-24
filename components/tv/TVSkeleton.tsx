@@ -17,7 +17,7 @@ interface Props {
  */
 export function TVSkeleton({ count = 15, columns = 5, sidebarWidth = 0 }: Props) {
   const { width } = useWindowDimensions();
-  const CARD_W = (width - sidebarWidth - 40) / columns;
+  const CARD_W = (width - sidebarWidth - TV.layout.listPadding * 2 - TV.layout.gridGap * (columns - 1)) / columns;
   const shimmer = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -74,8 +74,8 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: 8,
-    gap: 8,
+    padding: TV.layout.listPadding,
+    gap: TV.layout.gridGap,
   },
   card: {
     borderRadius: 8,

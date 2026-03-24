@@ -21,6 +21,16 @@ export const TV = {
     accentBg: '#1a3040',
     /** 危险/错误 */
     danger: '#ff4757',
+    /** 热门推荐 */
+    hot: '#ef4444',
+    /** 黄金打榜 */
+    gold: '#f59e0b',
+    /** 沉浸直播 */
+    premium: '#8b5cf6',
+    /** 成功/历史 */
+    success: '#10b981',
+    /** 信息/搜索 (复用主视觉) */
+    info: '#00AEEC',
     /** 主文本 */
     textPrimary: '#e0e0e0',
     /** 二级文本 */

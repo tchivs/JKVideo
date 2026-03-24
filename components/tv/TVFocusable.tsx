@@ -1,4 +1,5 @@
-import React, { useCallback, useRef } from 'react';
+import * as React from 'react';
+import { useCallback, useRef } from 'react';
 import {
   Pressable,
   Animated,
@@ -10,7 +11,7 @@ import {
 import { TV } from '../../constants/tvTheme';
 
 interface TVFocusableProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
   focusStyle?: ViewStyle;
@@ -19,6 +20,8 @@ interface TVFocusableProps {
   disabled?: boolean;
   hasTVPreferredFocus?: boolean;
   accessibilityLabel?: string;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 /**
@@ -38,6 +41,8 @@ export function TVFocusable({
   disabled = false,
   hasTVPreferredFocus = false,
   accessibilityLabel,
+  onFocus,
+  onBlur,
 }: TVFocusableProps): React.JSX.Element {
   // scale 动画 — native driver
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -47,6 +52,7 @@ export function TVFocusable({
   const easeOut = Easing.out(Easing.quad);
 
   const handleFocus = useCallback(() => {
+    onFocus?.();
     Animated.parallel([
       Animated.timing(scaleAnim, {
         toValue: 1,
@@ -61,9 +67,10 @@ export function TVFocusable({
         useNativeDriver: true,
       }),
     ]).start();
-  }, [scaleAnim, focusAnim]);
+  }, [scaleAnim, focusAnim, onFocus]);
 
   const handleBlur = useCallback(() => {
+    onBlur?.();
     Animated.parallel([
       Animated.timing(scaleAnim, {
         toValue: 0,
@@ -78,7 +85,7 @@ export function TVFocusable({
         useNativeDriver: true,
       }),
     ]).start();
-  }, [scaleAnim, focusAnim]);
+  }, [scaleAnim, focusAnim, onBlur]);
 
   const animatedScale = scaleAnim.interpolate({
     inputRange: [0, 1],

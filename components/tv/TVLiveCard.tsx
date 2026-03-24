@@ -17,6 +17,7 @@ import { TV } from '../../constants/tvTheme';
 interface Props {
   item: LiveRoom;
   onPress?: () => void;
+  sidebarWidth?: number;
 }
 
 /**
@@ -25,11 +26,12 @@ interface Props {
 export const TVLiveCard = React.memo(function TVLiveCard({
   item,
   onPress,
+  sidebarWidth = 0,
 }: Props) {
   const { width } = useWindowDimensions();
   const NUM_COLUMNS = 5;
   const CARD_WIDTH =
-    (width - TV.layout.contentPaddingH * 2 - TV.layout.gridGap * (NUM_COLUMNS - 1)) /
+    (width - sidebarWidth - TV.layout.listPadding * 2 - TV.layout.gridGap * (NUM_COLUMNS - 1)) /
     NUM_COLUMNS;
 
   return (

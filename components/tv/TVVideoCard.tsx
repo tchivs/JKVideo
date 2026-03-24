@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
   Image,
   StyleSheet,
   useWindowDimensions,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { VideoItem } from '../../services/types';
@@ -17,6 +18,7 @@ import { TV } from '../../constants/tvTheme';
 interface Props {
   item: VideoItem;
   onPress: () => void;
+  sidebarWidth?: number;
 }
 
 /**
@@ -26,18 +28,43 @@ interface Props {
 export const TVVideoCard = React.memo(function TVVideoCard({
   item,
   onPress,
+  sidebarWidth = 0,
 }: Props) {
   const { width } = useWindowDimensions();
   const NUM_COLUMNS = 5;
   const CARD_WIDTH =
-    (width - TV.layout.contentPaddingH * 2 - TV.layout.gridGap * (NUM_COLUMNS - 1)) /
+    (width - sidebarWidth - TV.layout.listPadding * 2 - TV.layout.gridGap * (NUM_COLUMNS - 1)) /
     NUM_COLUMNS;
 
   const coverQuality = useSettingsStore(s => s.coverQuality);
 
+  const [isHovered, setIsHovered] = useState(false);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleFocus = useCallback(() => {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => setIsHovered(true), 600);
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    setIsHovered(false);
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+  }, []);
+
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(overlayOpacity, {
+      toValue: isHovered ? 1 : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [isHovered, overlayOpacity]);
+
   return (
     <TVFocusable
       onPress={onPress}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
       style={[styles.card, { width: CARD_WIDTH }]}
       focusStyle={{ borderRadius: TV.radius.md }}
       accessibilityLabel={item.title}
@@ -60,6 +87,20 @@ export const TVVideoCard = React.memo(function TVVideoCard({
             {formatDuration(item.duration)}
           </Text>
         </View>
+
+        <Animated.View style={[styles.hoverOverlay, { opacity: overlayOpacity }]} pointerEvents="none">
+          <View style={styles.hoverBackdrop} />
+          <View style={styles.hoverContent}>
+            <View style={styles.hoverStat}>
+              <Ionicons name="thumbs-up-outline" size={14} color={TV.color.white} />
+              <Text style={styles.hoverStatText}>{formatCount(item.stat?.like ?? 0)}</Text>
+            </View>
+            <View style={styles.hoverStat}>
+              <Ionicons name="chatbubble-ellipses-outline" size={14} color={TV.color.white} />
+              <Text style={styles.hoverStatText}>{formatCount(item.stat?.danmaku ?? 0)}</Text>
+            </View>
+          </View>
+        </Animated.View>
       </View>
       <View style={styles.info}>
         <Text style={styles.title} numberOfLines={2}>
@@ -116,5 +157,29 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   metaText: { fontSize: TV.font.sm, color: TV.color.white },
+  hoverOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  hoverBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  hoverContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: TV.space.lg,
+  },
+  hoverStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  hoverStatText: {
+    fontSize: TV.font.md,
+    color: TV.color.white,
+    fontWeight: 'bold',
+  },
 });
 
