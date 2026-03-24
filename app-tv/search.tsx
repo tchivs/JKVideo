@@ -19,10 +19,18 @@ import { TVSkeleton } from '../components/tv/TVSkeleton';
 import { useSearch } from '../hooks/useSearch';
 import { useHistoryStore } from '../store/historyStore';
 import { getSearchSquare, type SearchHotItem } from '../services/bilibili';
+import type { SearchVideoOrder } from '../services/bilibili';
 import type { VideoItem } from '../services/types';
 import { TV } from '../constants/tvTheme';
+import { useTVLayout } from '../hooks/useTVLayout';
 
-const NUM_COLUMNS = 5;
+const SORT_OPTIONS: Array<{ label: string; value: SearchVideoOrder }> = [
+  { label: '综合', value: 'totalrank' },
+  { label: '最新', value: 'pubdate' },
+  { label: '播放', value: 'click' },
+  { label: '收藏', value: 'stow' },
+  { label: '弹幕', value: 'dm' },
+];
 
 /**
  * TV 版搜索页。
@@ -30,11 +38,13 @@ const NUM_COLUMNS = 5;
  */
 export default function TVSearchScreen() {
   const router = useRouter();
-  const { keyword, setKeyword, results, loading, search, loadMore } =
+  const { gridColumns, contentPaddingH, headerTopPadding, isCompact } = useTVLayout();
+  const { keyword, setKeyword, sortOrder, setSortOrder, results, loading, search, loadMore } =
     useSearch();
   const { searchHistory, addSearchHistory, clearSearchHistory } =
     useHistoryStore();
   const inputRef = useRef<TextInput>(null);
+  const [editingKeyword, setEditingKeyword] = useState(false);
 
   const [trending, setTrending] = useState<SearchHotItem[]>([]);
 
@@ -46,12 +56,12 @@ export default function TVSearchScreen() {
     (kw?: string) => {
       const term = (kw ?? keyword).trim();
       if (term) {
-        search(term, true);
+        search(term, true, sortOrder);
         addSearchHistory(term);
         if (kw) setKeyword(term);
       }
     },
-    [keyword, search, addSearchHistory, setKeyword],
+    [keyword, sortOrder, search, addSearchHistory, setKeyword],
   );
 
   const renderItem = useCallback(
@@ -90,7 +100,7 @@ export default function TVSearchScreen() {
   return (
     <View style={styles.container}>
       {/* 搜索栏 */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingHorizontal: contentPaddingH, paddingTop: headerTopPadding }]}>
         <TVFocusable
           onPress={() => router.back()}
           style={styles.backBtn}
@@ -100,7 +110,14 @@ export default function TVSearchScreen() {
           <Ionicons name="chevron-back" size={24} color={TV.color.textSecondary} />
         </TVFocusable>
 
-        <View style={styles.inputWrap}>
+        <TVFocusable
+          style={[styles.inputWrap, editingKeyword && styles.inputWrapActive]}
+          onPress={() => {
+            setEditingKeyword(true);
+            inputRef.current?.focus();
+          }}
+          accessibilityLabel="输入搜索关键词"
+        >
           <TextInput
             ref={inputRef}
             style={styles.input}
@@ -108,14 +125,20 @@ export default function TVSearchScreen() {
             placeholderTextColor={TV.color.textTertiary}
             value={keyword}
             onChangeText={setKeyword}
-            onSubmitEditing={() => handleSearch()}
+            onFocus={() => setEditingKeyword(true)}
+            onBlur={() => setEditingKeyword(false)}
+            onSubmitEditing={() => {
+              handleSearch();
+              inputRef.current?.blur();
+              setEditingKeyword(false);
+            }}
             returnKeyType="search"
             autoCapitalize="none"
             autoCorrect={false}
             spellCheck={false}
             autoComplete="off"
           />
-        </View>
+        </TVFocusable>
 
         <TVButton
           title="搜索"
@@ -127,7 +150,7 @@ export default function TVSearchScreen() {
 
       {/* 搜索历史区域 */}
       {showHistory && (
-        <View style={styles.historySection}>
+        <View style={[styles.historySection, { paddingHorizontal: contentPaddingH }]}>
           <View style={styles.historyHeader}>
             <Text style={styles.historyTitle}>搜索历史</Text>
             <TVButton
@@ -166,7 +189,7 @@ export default function TVSearchScreen() {
 
       {/* 热搜推荐 */}
       {showTrending && (
-        <View style={styles.historySection}>
+        <View style={[styles.historySection, { paddingHorizontal: contentPaddingH }]}>
           <View style={styles.historyHeader}>
             <Text style={styles.historyTitle}>B站热搜榜</Text>
           </View>
@@ -197,23 +220,46 @@ export default function TVSearchScreen() {
       )}
 
       {/* 搜索结果 */}
+      <View style={[styles.sortRow, { paddingHorizontal: contentPaddingH }]}> 
+        {SORT_OPTIONS.map(option => {
+          const selected = option.value === sortOrder;
+          return (
+            <TVFocusable
+              key={option.value}
+              style={[styles.sortChip, selected && styles.sortChipActive]}
+              onPress={() => {
+                setSortOrder(option.value);
+                if (keyword.trim()) {
+                  search(keyword, true, option.value);
+                }
+              }}
+              scaleFactor={1.05}
+              borderColor={selected ? TV.color.accent : 'transparent'}
+              accessibilityLabel={`按${option.label}排序`}
+            >
+              <Text style={[styles.sortChipText, selected && styles.sortChipTextActive]}>{option.label}</Text>
+            </TVFocusable>
+          );
+        })}
+      </View>
+
       <FlatList
         data={results}
         keyExtractor={(item, i) => item.bvid || String(i)}
         renderItem={renderItem}
-        numColumns={NUM_COLUMNS}
+        numColumns={gridColumns}
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.listContent}
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         ListEmptyComponent={
           loading ? (
-            <TVSkeleton columns={NUM_COLUMNS} count={15} />
+            <TVSkeleton columns={gridColumns} count={15} />
           ) : !showHistory ? (
             <TVEmptyState
               title={results.length === 0 && keyword.trim() ? '没有找到相关视频' : '输入关键词搜索'}
               icon="search-outline"
-              style={{ paddingTop: 80 }}
+              style={{ paddingTop: isCompact ? TV.space.xxl : 80 }}
             />
           ) : null
         }
@@ -249,6 +295,12 @@ const styles = StyleSheet.create({
     borderRadius: TV.radius.md,
     paddingHorizontal: TV.space.lg - 2,
     justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  inputWrapActive: {
+    borderColor: TV.color.accent,
+    backgroundColor: TV.color.accentBg,
   },
   input: {
     fontSize: TV.font.xl,
@@ -279,6 +331,35 @@ const styles = StyleSheet.create({
   },
   historyChipText: { fontSize: TV.font.base, color: TV.color.textSecondary },
   // 结果
+  sortRow: {
+    flexDirection: 'row',
+    gap: TV.space.sm,
+    paddingTop: TV.space.sm,
+    paddingBottom: TV.space.xs,
+  },
+  sortChip: {
+    minWidth: 84,
+    height: 38,
+    paddingHorizontal: TV.space.md,
+    borderRadius: TV.radius.pill,
+    backgroundColor: TV.color.surfaceLight,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sortChipActive: {
+    backgroundColor: TV.color.accentBg,
+  },
+  sortChipText: {
+    fontSize: TV.font.sm,
+    color: TV.color.textSecondary,
+    fontWeight: '500',
+  },
+  sortChipTextActive: {
+    color: TV.color.accent,
+    fontWeight: '700',
+  },
   listContent: { padding: TV.layout.listPadding },
   row: { gap: TV.layout.gridGap },
   // 热搜

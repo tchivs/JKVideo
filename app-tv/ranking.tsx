@@ -11,9 +11,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { TVVideoCard } from '../components/tv/TVVideoCard';
 import { TVFocusable } from '../components/tv/TVFocusable';
 import { TVSkeleton } from '../components/tv/TVSkeleton';
-import { getPopularVideos } from '../services/bilibili';
+import { getPopularVideos, getRegionVideos } from '../services/bilibili';
 import type { VideoItem } from '../services/types';
 import { TV } from '../constants/tvTheme';
+import { useTVLayout } from '../hooks/useTVLayout';
 
 const CATEGORIES = [
   { id: 0, name: '综合热门', icon: 'flame' },
@@ -21,21 +22,20 @@ const CATEGORIES = [
   { id: 3, name: '音乐', icon: 'musical-notes' },
   { id: 4, name: '游戏', icon: 'game-controller' },
   { id: 5, name: '娱乐', icon: 'happy' },
-  { id: 36, name: '科技', icon: 'hardware-chip' },
-  { id: 188, name: '科普', icon: 'school' },
+  { id: 36, name: '知识', icon: 'school' },
+  { id: 188, name: '科技', icon: 'hardware-chip' },
   { id: 160, name: '生活', icon: 'cafe' },
   { id: 211, name: '美食', icon: 'restaurant' },
   { id: 119, name: '鬼畜', icon: 'skull' },
   { id: 155, name: '时尚', icon: 'shirt' },
 ];
 
-const NUM_COLUMNS = 5;
-
 /**
  * TV 版排行/分区浏览页。
  */
 export default function TVRankingScreen() {
   const router = useRouter();
+  const { gridColumns, contentPaddingH, headerTopPadding } = useTVLayout();
   const [category, setCategory] = useState(0);
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [page, setPage] = useState(1);
@@ -52,7 +52,9 @@ export default function TVRankingScreen() {
         setLoadingMore(true);
       }
       try {
-        const items = await getPopularVideos(pn);
+        const items = category === 0
+          ? await getPopularVideos(pn)
+          : await getRegionVideos(category, pn, 20);
         setError(null);
         if (reset) {
           setVideos(items);
@@ -68,7 +70,7 @@ export default function TVRankingScreen() {
         setLoadingMore(false);
       }
     },
-    [],
+    [category],
   );
 
   useEffect(() => {
@@ -78,10 +80,8 @@ export default function TVRankingScreen() {
   const handleCategory = useCallback(
     (id: number) => {
       setCategory(id);
-      // 目前 getPopularVideos 不支持分区过滤，但 UI 先做好
-      fetchVideos(1, true);
     },
-    [fetchVideos],
+    [],
   );
 
   const renderItem = useCallback(
@@ -97,7 +97,7 @@ export default function TVRankingScreen() {
   return (
     <View style={styles.container}>
       {/* 顶栏 */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingHorizontal: contentPaddingH, paddingTop: headerTopPadding }]}>
         <TVFocusable
           onPress={() => router.back()}
           style={styles.backBtn}
@@ -120,6 +120,8 @@ export default function TVRankingScreen() {
             ]}
             onPress={() => handleCategory(cat.id)}
             scaleFactor={1}
+            accessibilityLabel={`选择分类 ${cat.name}`}
+            hasTVPreferredFocus={cat.id === category}
           >
             <Ionicons
               name={cat.icon as any}
@@ -159,7 +161,7 @@ export default function TVRankingScreen() {
           data={videos}
           keyExtractor={item => item.bvid}
           renderItem={renderItem}
-          numColumns={NUM_COLUMNS}
+          numColumns={gridColumns}
           columnWrapperStyle={styles.row}
           contentContainerStyle={styles.listContent}
           onEndReached={() => {

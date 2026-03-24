@@ -207,7 +207,7 @@ function NativeTVLivePlayer({
       {/* 清晰度选择面板 */}
         {showQualityPanel && (
           <View style={styles.qualityOverlay}>
-          <View style={[styles.qualityPanel, { paddingBottom: tv.space.md, minWidth: Math.max(180, 220 * (tv.font.base / TV.font.base)) }]}>
+          <View style={[styles.qualityPanel, { paddingBottom: tv.space.md, minWidth: Math.max(180, 220 * (tv.font.base / TV.font.base)) }]}> 
             <Text style={[styles.qualityPanelTitle, { fontSize: tv.font.sm, paddingVertical: tv.space.sm } ]}>清晰度</Text>
             {qualities.map(q => (
               <TVFocusable
@@ -238,6 +238,17 @@ function NativeTVLivePlayer({
                 )}
               </TVFocusable>
             ))}
+            <TVFocusable
+              style={[styles.panelCancelBtn, { paddingHorizontal: tv.space.lg - 4, paddingVertical: tv.space.sm, borderRadius: tv.radius.sm, marginTop: tv.space.sm }]}
+              onPress={() => {
+                setShowQualityPanel(false);
+                resetHideTimer();
+              }}
+              scaleFactor={1}
+              accessibilityLabel="取消清晰度面板"
+            >
+              <Text style={[styles.panelCancelBtnText, { fontSize: tv.font.sm }]}>取消</Text>
+            </TVFocusable>
           </View>
         </View>
       )}
@@ -360,4 +371,14 @@ const styles = StyleSheet.create({
   qualityItemActive: { backgroundColor: TV.color.accentBg },
   qualityItemText: { color: TV.color.textSecondary, fontSize: 15 },
   qualityItemTextActive: { color: TV.color.accent, fontWeight: '600' },
+  panelCancelBtn: {
+    alignSelf: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    backgroundColor: TV.color.surfaceLight,
+  },
+  panelCancelBtnText: {
+    color: TV.color.white,
+    fontWeight: '600',
+  },
 });

@@ -5,6 +5,7 @@ import pako from 'pako';
 import type { VideoItem, Comment, PlayUrlResponse, QRCodeInfo, VideoShotData, DanmakuItem, LiveRoom, LiveRoomDetail, LiveAnchorInfo, LiveStreamInfo, UserSpaceInfo } from './types';
 import { signWbi } from '../utils/wbi';
 import { parseDanmakuXml } from '../utils/danmaku';
+import { buildSearchVideosParams, type SearchVideoOrder } from '../utils/searchVideosParams';
 import { useSettingsStore } from '../store/settingsStore';
 import { useAuthStore } from '../store/authStore';
 
@@ -342,6 +343,8 @@ export interface SearchHotItem {
   icon: string;
 }
 
+export type { SearchVideoOrder } from '../utils/searchVideosParams';
+
 export async function getSearchSquare(): Promise<SearchHotItem[]> {
   try {
     const res = await api.get('/x/web-interface/search/square', { params: { limit: 10 } });
@@ -356,13 +359,13 @@ function parseDuration(s: string): number {
   return parts.length === 2 ? parts[0] * 60 + parts[1] : parts[0] * 3600 + parts[1] * 60 + parts[2];
 }
 
-export async function searchVideos(keyword: string, page = 1): Promise<VideoItem[]> {
+export async function searchVideos(
+  keyword: string,
+  page = 1,
+  order: SearchVideoOrder = 'totalrank',
+): Promise<VideoItem[]> {
   const { imgKey, subKey } = await getWbiKeys();
-  const signed = signWbi(
-    { keyword, search_type: 'video', page, page_size: 20 },
-    imgKey,
-    subKey,
-  );
+  const signed = signWbi(buildSearchVideosParams(keyword, page, order), imgKey, subKey);
   const res = await api.get('/x/web-interface/wbi/search/type', { params: signed });
   const results: any[] = res.data.data?.result ?? [];
   return results

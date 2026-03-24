@@ -11,7 +11,9 @@
     "start:tv": "APP_VARIANT=tv expo start",
     "android:tv": "APP_VARIANT=tv expo run:android",
     "prebuild:tv": "APP_VARIANT=tv expo prebuild -p android --no-install",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:integration": "vitest run tests/integration",
+    "test:integration:watch": "vitest tests/integration"
   },
   "dependencies": {
     "@dr.pogodin/react-native-static-server": "^0.26.0",
@@ -49,7 +51,8 @@
     "@types/pako": "^2.0.4",
     "@types/react": "~19.2.2",
     "express": "^4.22.1",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "vitest": "^3.2.4"
   },
   "private": true
 }

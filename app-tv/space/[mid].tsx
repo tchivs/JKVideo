@@ -10,13 +10,16 @@ import { getUserSpaceInfo, getUserSpaceVideos } from '../../services/bilibili';
 import { usePlaylistStore } from '../../store/playlistStore';
 import { proxyImageUrl } from '../../utils/imageUrl';
 import { formatCount } from '../../utils/format';
+import { runWithInFlightGuard } from '../../utils/inFlightGuard';
+import { normalizeSpaceMidParam } from '../../utils/tvSpaceRoute';
 import type { UserSpaceInfo, VideoItem } from '../../services/types';
 import { TV } from '../../constants/tvTheme';
 
 export default function TVSpaceScreen() {
-  const { mid } = useLocalSearchParams<{ mid: string }>();
+  const { mid } = useLocalSearchParams<{ mid?: string | string[] }>();
   const router = useRouter();
   const { setPlaylist } = usePlaylistStore();
+  const routeMid = normalizeSpaceMidParam(mid);
 
   const [info, setInfo] = useState<UserSpaceInfo | null>(null);
   const [videos, setVideos] = useState<VideoItem[]>([]);
@@ -35,34 +38,35 @@ export default function TVSpaceScreen() {
   }, [pn]);
 
   const loadVideos = useCallback(async (page: number, isRefresh = false) => {
-    if (!mid || loadingListRef.current) return;
-    loadingListRef.current = true;
-    setLoadingList(true);
-    try {
-      const res = await getUserSpaceVideos(mid, page, 20);
-      setVideos(prev => isRefresh ? res.items : [...prev, ...res.items]);
-      setHasMore(res.hasMore);
-      setPn(page + 1);
-      pnRef.current = page + 1;
-    } catch (e) {
-      console.warn(e);
-    } finally {
-      loadingListRef.current = false;
-      setLoadingList(false);
-    }
-  }, [mid]);
+    if (!routeMid) return;
+
+    await runWithInFlightGuard(loadingListRef, async () => {
+      setLoadingList(true);
+      try {
+        const res = await getUserSpaceVideos(routeMid, page, 20);
+        setVideos(prev => isRefresh ? res.items : [...prev, ...res.items]);
+        setHasMore(res.hasMore);
+        setPn(page + 1);
+        pnRef.current = page + 1;
+      } catch (e) {
+        console.warn(e);
+      } finally {
+        setLoadingList(false);
+      }
+    });
+  }, [routeMid]);
 
   // 初始化获取 UP主信息与第一页视频
   useEffect(() => {
-    if (!mid) return;
+    if (!routeMid) return;
     setLoadingTop(true);
-    getUserSpaceInfo(mid).then(data => {
+    getUserSpaceInfo(routeMid).then(data => {
       setInfo(data);
       setLoadingTop(false);
     });
     // fetch first page
     loadVideos(1, true);
-  }, [mid, loadVideos]);
+  }, [routeMid, loadVideos]);
 
   const renderItem = useCallback(({ item, index }: { item: VideoItem; index: number }) => (
     <TVVideoCard
@@ -70,14 +74,15 @@ export default function TVSpaceScreen() {
       onPress={() => {
         if (!item.bvid) return;
         setPlaylist(videos, index, hasMore, async (currentLength) => {
+          if (!routeMid) return { items: [], hasMore: false };
           const nextPn = Math.floor(currentLength / 20) + 1;
-          const res = await getUserSpaceVideos(mid, nextPn, 20);
+          const res = await getUserSpaceVideos(routeMid, nextPn, 20);
           return res;
         });
         router.push(`/video/${item.bvid}` as any);
       }}
     />
-  ), [router, videos, hasMore, mid, setPlaylist]);
+  ), [router, videos, hasMore, routeMid, setPlaylist]);
 
   const renderHeader = () => (
     <View style={styles.header}>
