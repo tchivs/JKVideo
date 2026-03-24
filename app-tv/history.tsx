@@ -10,6 +10,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TVFocusable } from '../components/tv/TVFocusable';
+import { TVFadeIn } from '../components/tv/TVFadeIn';
 import { useHistoryStore, type HistoryItem } from '../store/historyStore';
 import { proxyImageUrl } from '../utils/imageUrl';
 import { formatDuration } from '../utils/format';
@@ -117,11 +118,11 @@ export default function TVHistoryScreen() {
       </View>
 
       {items.length === 0 ? (
-        <View style={styles.empty}>
+        <TVFadeIn style={styles.empty}>
           <Ionicons name="time-outline" size={56} color="#444" />
           <Text style={styles.emptyText}>暂无观看记录</Text>
           <Text style={styles.emptyHint}>观看视频后自动记录在这里</Text>
-        </View>
+        </TVFadeIn>
       ) : (
         <FlatList
           data={items}

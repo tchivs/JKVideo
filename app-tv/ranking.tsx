@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { TVVideoCard } from '../components/tv/TVVideoCard';
 import { TVFocusable } from '../components/tv/TVFocusable';
 import { TVSkeleton } from '../components/tv/TVSkeleton';
+import { TVFadeIn } from '../components/tv/TVFadeIn';
 import { getPopularVideos } from '../services/bilibili';
 import type { VideoItem } from '../services/types';
 
@@ -142,7 +143,7 @@ export default function TVRankingScreen() {
       {loading ? (
         <TVSkeleton />
       ) : error ? (
-        <View style={styles.errorBox}>
+        <TVFadeIn style={styles.errorBox}>
           <Ionicons name="cloud-offline-outline" size={48} color="#666" />
           <Text style={styles.errorText}>{error}</Text>
           <TVFocusable
@@ -153,7 +154,7 @@ export default function TVRankingScreen() {
           >
             <Text style={styles.retryText}>重试</Text>
           </TVFocusable>
-        </View>
+        </TVFadeIn>
       ) : (
         <FlatList
           data={videos}

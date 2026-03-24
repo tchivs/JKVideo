@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TVVideoCard } from '../components/tv/TVVideoCard';
 import { TVFocusable } from '../components/tv/TVFocusable';
+import { TVFadeIn } from '../components/tv/TVFadeIn';
 import { useSearch } from '../hooks/useSearch';
 import { useHistoryStore } from '../store/historyStore';
 import type { VideoItem } from '../services/types';
@@ -148,14 +149,14 @@ export default function TVSearchScreen() {
         onEndReachedThreshold={0.5}
         ListEmptyComponent={
           !loading && !showHistory ? (
-            <View style={styles.emptyBox}>
+            <TVFadeIn style={styles.emptyBox}>
               <Ionicons name="search-outline" size={48} color="#444" />
               <Text style={styles.emptyText}>
                 {results.length === 0 && keyword.trim()
                   ? '没有找到相关视频'
                   : '输入关键词搜索'}
               </Text>
-            </View>
+            </TVFadeIn>
           ) : null
         }
         ListFooterComponent={

@@ -63,6 +63,17 @@ export const TV = {
     title: 18,
     heading: 20,
   },
+  // ── 动画 ──
+  timing: {
+    /** 聚焦进入 */
+    focusIn: 150,
+    /** 聚焦离开（比进入快） */
+    focusOut: 100,
+    /** 内容淡入 */
+    fadeIn: 300,
+    /** 列表项交错延迟 */
+    stagger: 60,
+  },
   // ── 侧边栏 ──
   sidebar: {
     width: 80,

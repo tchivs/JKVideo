@@ -2,10 +2,12 @@ import React, { useCallback, useRef } from 'react';
 import {
   Pressable,
   Animated,
+  Easing,
   StyleSheet,
   type ViewStyle,
   type StyleProp,
 } from 'react-native';
+import { TV } from '../../constants/tvTheme';
 
 interface TVFocusableProps {
   children: React.ReactNode;
@@ -22,6 +24,9 @@ interface TVFocusableProps {
 /**
  * TV 专用可聚焦容器。
  * 聚焦时平滑显示高亮边框并轻微放大，按确认键触发 onPress。
+ * - scale 使用 native driver 保证 60fps
+ * - borderColor 使用 JS driver（不支持 native）
+ * - 退出动画比进入更快，符合自然运动规律
  */
 export function TVFocusable({
   children,
@@ -29,30 +34,53 @@ export function TVFocusable({
   style,
   focusStyle,
   scaleFactor = 1.05,
-  borderColor = '#00AEEC',
+  borderColor = TV.color.accent,
   disabled = false,
   hasTVPreferredFocus = false,
   accessibilityLabel,
 }: TVFocusableProps): React.JSX.Element {
-  const focusAnim = useRef(new Animated.Value(0)).current;
+  // scale 动画 — native driver
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  // border 动画 — JS driver（borderColor 不支持 native）
+  const borderAnim = useRef(new Animated.Value(0)).current;
+
+  const easeOut = Easing.out(Easing.quad);
 
   const handleFocus = useCallback(() => {
-    Animated.timing(focusAnim, {
-      toValue: 1,
-      duration: 150,
-      useNativeDriver: false,
-    }).start();
-  }, [focusAnim]);
+    Animated.parallel([
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: TV.timing.focusIn,
+        easing: easeOut,
+        useNativeDriver: true,
+      }),
+      Animated.timing(borderAnim, {
+        toValue: 1,
+        duration: TV.timing.focusIn,
+        easing: easeOut,
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, [scaleAnim, borderAnim]);
 
   const handleBlur = useCallback(() => {
-    Animated.timing(focusAnim, {
-      toValue: 0,
-      duration: 150,
-      useNativeDriver: false,
-    }).start();
-  }, [focusAnim]);
+    Animated.parallel([
+      Animated.timing(scaleAnim, {
+        toValue: 0,
+        duration: TV.timing.focusOut,
+        easing: easeOut,
+        useNativeDriver: true,
+      }),
+      Animated.timing(borderAnim, {
+        toValue: 0,
+        duration: TV.timing.focusOut,
+        easing: easeOut,
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, [scaleAnim, borderAnim]);
 
-  const animatedScale = focusAnim.interpolate({
+  const animatedScale = scaleAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [1, scaleFactor],
   });
@@ -63,7 +91,7 @@ export function TVFocusable({
         style,
         {
           transform: [{ scale: animatedScale }],
-          borderColor: focusAnim.interpolate({
+          borderColor: borderAnim.interpolate({
             inputRange: [0, 1],
             outputRange: ['transparent', borderColor],
           }),
@@ -95,7 +123,7 @@ export function TVFocusable({
 export const styles = StyleSheet.create({
   focusBorder: {
     borderWidth: 2,
-    borderColor: '#00AEEC',
+    borderColor: TV.color.accent,
   },
 });
 

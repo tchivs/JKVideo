@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useCallback, useState } from 'react';
+import React, { useEffect, useMemo, useCallback, useState, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,6 +6,8 @@ import {
   FlatList,
   Image,
   ActivityIndicator,
+  Animated,
+  Easing,
   useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -57,6 +59,7 @@ export default function TVHomeScreen(): React.JSX.Element {
   const [activeTab, setActiveTab] = useState<TabKey>('hot');
   const [showLogin, setShowLogin] = useState(false);
   const [liveAreaId, setLiveAreaId] = useState(0);
+  const contentOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     load();
@@ -73,12 +76,26 @@ export default function TVHomeScreen(): React.JSX.Element {
 
   const handleTabChange = useCallback(
     (key: TabKey) => {
-      setActiveTab(key);
-      if (key === 'live' && rooms.length === 0) {
-        liveLoad(true, liveAreaId);
-      }
+      // 淡出 → 切换 → 淡入
+      Animated.timing(contentOpacity, {
+        toValue: 0,
+        duration: 120,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }).start(() => {
+        setActiveTab(key);
+        if (key === 'live' && rooms.length === 0) {
+          liveLoad(true, liveAreaId);
+        }
+        Animated.timing(contentOpacity, {
+          toValue: 1,
+          duration: 200,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }).start();
+      });
     },
-    [rooms.length, liveLoad, liveAreaId],
+    [rooms.length, liveLoad, liveAreaId, contentOpacity],
   );
 
   const handleLiveArea = useCallback(
@@ -206,7 +223,7 @@ export default function TVHomeScreen(): React.JSX.Element {
       </View>
 
       {/* 右侧内容区 */}
-      <View style={styles.content}>
+      <Animated.View style={[styles.content, { opacity: contentOpacity }]}>
         {activeTab === 'hot' ? (
           <FlatList
             data={allVideos}
@@ -278,7 +295,7 @@ export default function TVHomeScreen(): React.JSX.Element {
             }
           />
         )}
-      </View>
+      </Animated.View>
 
       <TVLoginModal
         visible={showLogin}

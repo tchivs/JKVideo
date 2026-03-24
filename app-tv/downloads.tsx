@@ -11,6 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TVFocusable } from '../components/tv/TVFocusable';
+import { TVFadeIn } from '../components/tv/TVFadeIn';
 import { useDownloadStore, type DownloadTask } from '../store/downloadStore';
 import { proxyImageUrl } from '../utils/imageUrl';
 
@@ -127,11 +128,11 @@ export default function TVDownloadsScreen() {
       </View>
 
       {all.length === 0 ? (
-        <View style={styles.empty}>
+        <TVFadeIn style={styles.empty}>
           <Ionicons name="cloud-download-outline" size={56} color="#444" />
           <Text style={styles.emptyText}>暂无下载记录</Text>
           <Text style={styles.emptyHint}>在视频详情页点击下载按钮</Text>
-        </View>
+        </TVFadeIn>
       ) : (
         <FlatList
           data={[...downloading, ...done]}
