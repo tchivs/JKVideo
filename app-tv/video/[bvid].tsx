@@ -276,6 +276,8 @@ export default function TVVideoDetailScreen() {
           onPlayNext={handlePlayNext}
           onPlayPrev={handlePlayPrev}
           onLike={handleLike}
+          uploader={video?.owner ? { mid: String(video.owner.mid), name: video.owner.name, face: proxyImageUrl(video.owner.face) } : undefined}
+          onUploaderPress={(mid) => router.push(`/space/${mid}`)}
         />
       </View>
 
@@ -334,13 +336,18 @@ export default function TVVideoDetailScreen() {
                 showsVerticalScrollIndicator={false}
               >
                 {/* UP 主信息 */}
-                <View style={styles.upRow}>
+                <TVFocusable 
+                  style={styles.upRow}
+                  onPress={() => router.push(`/space/${video.owner.mid}`)}
+                  scaleFactor={1.03}
+                >
                   <Image
                     source={{ uri: proxyImageUrl(video.owner.face) }}
                     style={styles.avatar}
                   />
                   <Text style={styles.upName} numberOfLines={1}>{video.owner.name}</Text>
-                </View>
+                  <Ionicons name="chevron-forward" size={16} color={TV.color.textSecondary} style={{ marginLeft: 'auto' }} />
+                </TVFocusable>
 
                 {/* 标题 */}
                 <Text style={styles.title}>{video.title}</Text>
@@ -693,6 +700,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginBottom: 8,
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: TV.color.surfaceAlt, // 增加一个柔化底色以便焦点效果更好
   },
   avatar: {
     width: 28,

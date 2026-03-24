@@ -11,6 +11,7 @@ import {
   View,
   StyleSheet,
   Text,
+  Image,
   useWindowDimensions,
   Platform,
   ScrollView,
@@ -81,6 +82,9 @@ interface Props {
   onPlayPrev?: () => void;
   /** 触发点赞操作 (1:点赞 2:取消) */
   onLike?: (action: 1 | 2) => void;
+  /** 用于在控制栏展示并导向 UP 主空间 */
+  uploader?: { mid: string; name: string; face: string };
+  onUploaderPress?: (mid: string) => void;
 }
 
 const TimeWidget = React.memo(() => {
@@ -131,6 +135,8 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
       onPlayNext,
       onPlayPrev,
       onLike,
+      uploader,
+      onUploaderPress,
     }: Props,
     ref,
   ) {
@@ -578,6 +584,21 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
                 </Text>
 
                 <View style={{ flex: 1 }} />
+
+                {uploader && (
+                  <TVFocusable
+                    onPress={() => onUploaderPress?.(uploader.mid)}
+                    style={[styles.ctrlBtn, { paddingHorizontal: 8 }]}
+                    scaleFactor={1.1}
+                    accessibilityLabel={`UP主：${uploader.name}`}
+                  >
+                    <Image 
+                      source={{ uri: uploader.face }} 
+                      style={{ width: 24, height: 24, borderRadius: 12, marginRight: 6 }} 
+                    />
+                    <Text style={styles.qualityText} numberOfLines={1}>{uploader.name}</Text>
+                  </TVFocusable>
+                )}
 
                 <TVFocusable
                   onPress={() => setShowQuality(true)}
