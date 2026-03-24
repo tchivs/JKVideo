@@ -100,7 +100,7 @@ D-Pad 遥控器全键导航，Animated 聚焦动效，弹幕高级配置（透�
 git clone https://github.com/tiajinsha/JKVideo.git
 cd JKVideo
 npm install
-npx expo start
+npm run start
 ```
 
 用 Expo Go App（[Android](https://expo.dev/go) / [iOS](https://expo.dev/go)）扫描终端二维码即可运行。
@@ -111,27 +111,15 @@ npx expo start
 
 ```bash
 npm install
-npx expo run:android   # Android
-npx expo run:ios       # iOS（需 macOS + Xcode）
+npm run android        # Android
+npm run ios            # iOS（需 macOS + Xcode）
 ```
-
-### 方式四：Android TV
-
-> TV 版与手机版独立编译，使用独立包名 `com.anonymous.jkvideo.tv`
-
-```bash
-npm install
-npm run prebuild:tv     # 生成 TV 版 android 目录
-npm run build:tv        # 编译 TV 版 APK
-```
-
-将生成的 APK 通过 ADB 侧载到 Android TV 设备即可。TV 版使用 D-Pad 遥控器导航，横屏深色主题。
 
 ### 方式三：Web 端
 
 ```bash
 npm install
-npx expo start --web
+npm run web
 ```
 
 > Web 端图片需本地代理服务器绕过防盗链：`node scripts/proxy.js`（端口 3001）
@@ -141,6 +129,20 @@ npx expo start --web
 前往 [Releases](https://github.com/tiajinsha/JKVideo/releases/latest) 下载最新 APK，无需编译，安装即用。
 
 > 需在 Android 设置中开启「安装未知来源应用」
+
+---
+
+## 📺 Android TV 独立版本
+
+> TV 版与手机版独立编译，使用独立包名 `com.anonymous.jkvideo.tv`
+
+```bash
+npm install
+npm run prebuild:tv     # 生成 TV 版 android 目录
+npm run android:tv      # 编译 TV 版 APK
+```
+
+将生成的 APK 通过 ADB 侧载到 Android TV 设备即可。TV 版使用 D-Pad 遥控器导航，横屏深色主题。
 
 ---
 

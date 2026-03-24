@@ -9,7 +9,7 @@
     "web": "expo start --web",
     "proxy": "node dev-proxy.js",
     "start:tv": "APP_VARIANT=tv expo start",
-    "build:tv": "APP_VARIANT=tv expo run:android",
+    "android:tv": "APP_VARIANT=tv expo run:android",
     "prebuild:tv": "APP_VARIANT=tv expo prebuild -p android --no-install",
     "typecheck": "tsc --noEmit"
   },

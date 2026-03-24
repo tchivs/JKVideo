@@ -93,7 +93,7 @@ Android · iOS · Web, Expo Go scan-to-run in 5 minutes, Dev Build unlocks full 
 git clone https://github.com/tiajinsha/JKVideo.git
 cd JKVideo
 npm install
-npx expo start
+npm run start
 ```
 
 Scan the QR code with [Expo Go](https://expo.dev/go) on Android or iOS.
@@ -104,18 +104,30 @@ Scan the QR code with [Expo Go](https://expo.dev/go) on Android or iOS.
 
 ```bash
 npm install
-npx expo run:android   # Android
-npx expo run:ios       # iOS (requires macOS + Xcode)
+npm run android        # Android
+npm run ios            # iOS (requires macOS + Xcode)
 ```
 
 ### Option 3: Web
 
 ```bash
 npm install
-npx expo start --web
+npm run web
 ```
 
 > Web requires a local proxy server for image anti-hotlinking: `node scripts/proxy.js` (port 3001)
+
+### Option 4: Android TV
+
+> TV build is compiled independently from the mobile app, using a separate package name `com.anonymous.jkvideo.tv`
+
+```bash
+npm install
+npm run prebuild:tv     # Generate TV android directory
+npm run android:tv      # Compile TV APK
+```
+
+Sideload the generated APK to your Android TV device via ADB. The TV version features D-Pad remote navigation and a landscape dark theme.
 
 ### Direct Install (Android)
 
@@ -136,7 +148,15 @@ app/
   downloads.tsx        # Download manager
   settings.tsx         # Settings (quality + logout)
 
+app-tv/                # TV app pages (independent build, landscape dark theme, D-Pad nav)
+  index.tsx            # Home (Sidebar + 5-column grid)
+  video/[bvid].tsx     # Video detail (Left player + right info)
+  live/[roomId].tsx    # Live room (Fullscreen player)
+  search.tsx           # Search page
+  settings.tsx         # Settings page
+
 components/            # UI components (player, danmaku, cards, etc.)
+  tv/                  # TV-specific components (TVFocusable, TVVideoPlayer, etc.)
 hooks/                 # Data hooks (video list, stream URLs, danmaku, etc.)
 services/              # Bilibili API wrapper (axios + cookie interceptor)
 store/                 # Zustand stores (auth, download, playback, settings)

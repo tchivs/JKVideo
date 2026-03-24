@@ -37,7 +37,7 @@ npm run ios         # expo run:ios
 npm run web         # expo start --web
 npm run proxy       # node dev-proxy.js
 npm run start:tv    # APP_VARIANT=tv expo start
-npm run build:tv    # APP_VARIANT=tv expo run:android
+npm run android:tv  # APP_VARIANT=tv expo run:android
 npm run prebuild:tv # APP_VARIANT=tv expo prebuild -p android --no-install
 ```
 
@@ -49,7 +49,7 @@ npm run prebuild:tv # APP_VARIANT=tv expo prebuild -p android --no-install
 - `web`: Web build/runtime through Expo.
 - `proxy`: Local image/API proxy on port 3001 for web.
 - `start:tv`: Expo dev server for TV variant.
-- `build:tv`: Native Android TV build (separate package: `com.anonymous.jkvideo.tv`).
+- `android:tv`: Native Android TV build (separate package: `com.anonymous.jkvideo.tv`).
 - `prebuild:tv`: Generate TV android native directory with Leanback manifest.
 
 ## Test / lint / type-check commands
