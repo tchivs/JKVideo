@@ -6,6 +6,7 @@ import type { VideoItem, Comment, PlayUrlResponse, QRCodeInfo, VideoShotData, Da
 import { signWbi } from '../utils/wbi';
 import { parseDanmakuXml } from '../utils/danmaku';
 import { useSettingsStore } from '../store/settingsStore';
+import { useAuthStore } from '../store/authStore';
 
 const isWeb = Platform.OS === 'web';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -674,3 +675,33 @@ export async function getRegionVideos(
   }
 }
 
+// ─── 互动操作 ────────────────────────────────────────────────────────
+
+function getBiliJct(): string {
+  const cookie = useAuthStore.getState().sessdata || '';
+  const match = cookie.match(/bili_jct=([^;]+)/);
+  return match ? match[1] : '';
+}
+
+/**
+ * 点赞/取消点赞
+ * @param action 1: 点赞, 2: 取消点赞
+ */
+export async function likeVideo(bvid: string, action: 1 | 2): Promise<boolean> {
+  try {
+    const csrf = getBiliJct();
+    if (!csrf) return false;
+    // B站的 POST 接口大部分接受 query 参数与 CSRF 搭配的 body
+    const body = `bvid=${bvid}&like=${action}&csrf=${csrf}`;
+    const res = await api.post('/x/web-interface/archive/like', body, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      withCredentials: true,
+    });
+    return res.data.code === 0;
+  } catch (e: any) {
+    console.warn('likeVideo failed:', e?.message);
+    return false;
+  }
+}

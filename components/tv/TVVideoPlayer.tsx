@@ -71,9 +71,16 @@ interface Props {
   /** 用户选择集数后回调，参数为 episode id */
   onEpisodeChange?: (id: string) => void;
   /** 是否存在可自动连播的下一集 */
+  /** 是否存在可自动连播的下一集 */
   hasNextEpisode?: boolean;
   /** 当倒计时结束或用户确认时，播放下一集事件 */
   onAutoPlayNext?: () => void;
+  /** 显式触发播放下一集（下键短按） */
+  onPlayNext?: () => void;
+  /** 显式触发播放上一集（上键短按） */
+  onPlayPrev?: () => void;
+  /** 触发点赞操作 (1:点赞 2:取消) */
+  onLike?: (action: 1 | 2) => void;
 }
 
 const TimeWidget = React.memo(() => {
@@ -121,6 +128,9 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
       onEpisodeChange,
       hasNextEpisode,
       onAutoPlayNext,
+      onPlayNext,
+      onPlayPrev,
+      onLike,
     }: Props,
     ref,
   ) {
@@ -313,23 +323,50 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
       resetHideTimer();
     }, [resetHideTimer]);
 
-    // TV 原生按键劫持 (处理下键换绑)
+    const keyDownTimeRef = useRef<Record<string, number>>({});
+
+    // TV 原生按键劫持 (处理上下键的短按切集、长按点赞)
     useTVEventHandler((evt: any) => {
       if (!evt || !evt.eventType) return;
-      if (downKeyAction === 'nextVideo') {
-        const isMenuOpen = showQuality || showSpeed || showDanmakuConfig || showEpisodes;
-        if (evt.eventType === 'menu') {
+      const t = evt.eventType;
+      
+      const isMenuOpen = showQuality || showSpeed || showDanmakuConfig || showEpisodes;
+      if (t === 'menu') {
+        showAndReset();
+        return;
+      }
+      
+      if (isMenuOpen) return; // 菜单打开时走常规焦点转移
+
+      if (t === 'up' || t === 'down') {
+        if (downKeyAction === 'controls' && t === 'down' && !showControls) {
           showAndReset();
-        } else if (evt.eventType === 'down' && !isMenuOpen) {
-          // 此时屏蔽原生向下寻焦，直接起播下一个
-          if (hasNextEpisode && onAutoPlayNext) {
-            onAutoPlayNext();
-          }
+          return;
         }
-      } else {
-        // 默认情况：如果本来是下键显示控制栏（如果是全屏聚焦状态）
-        if (evt.eventType === 'down' && !showControls) {
-          showAndReset();
+
+        const act = evt.eventKeyAction;
+        const now = Date.now();
+
+        if (act === 0) { // KEY_DOWN
+          if (!keyDownTimeRef.current[t]) {
+            keyDownTimeRef.current[t] = now;
+          }
+        } else if (act === 1 || act === undefined) { // KEY_UP 或无 act 标记
+          const downTime = keyDownTimeRef.current[t] || now;
+          const pressDuration = now - downTime;
+          keyDownTimeRef.current[t] = 0; // reset
+
+          if (pressDuration > 600 && act === 1) { // 必须提供 act===1 才支持长按判定
+            if (t === 'up') onLike?.(1);
+            if (t === 'down') onLike?.(2);
+          } else {
+            if (t === 'up') onPlayPrev?.();
+            if (t === 'down') {
+               // 原有策略与新策略合并：优先 onPlayNext，若无则使用 onAutoPlayNext
+               if (onPlayNext) onPlayNext();
+               else if (hasNextEpisode && onAutoPlayNext) onAutoPlayNext();
+            }
+          }
         }
       }
     });

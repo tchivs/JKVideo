@@ -15,13 +15,14 @@ import { TVVideoPlayer } from '../../components/tv/TVVideoPlayer';
 import { TVFocusable } from '../../components/tv/TVFocusable';
 import { TVEmptyState } from '../../components/tv/TVEmptyState';
 import { TVLoading } from '../../components/tv/TVLoading';
-import { getDanmaku } from '../../services/bilibili';
+import { getDanmaku, likeVideo } from '../../services/bilibili';
 import type { DanmakuItem, VideoItem } from '../../services/types';
 import { useVideoDetail } from '../../hooks/useVideoDetail';
 import { useComments } from '../../hooks/useComments';
 import { useRelatedVideos } from '../../hooks/useRelatedVideos';
 import { useHistoryStore } from '../../store/historyStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { usePlaylistStore } from '../../store/playlistStore';
 import { formatCount } from '../../utils/format';
 import { proxyImageUrl } from '../../utils/imageUrl';
 import { TV } from '../../constants/tvTheme';
@@ -65,6 +66,31 @@ export default function TVVideoDetailScreen() {
     loading: relatedLoading,
     load: loadRelated,
   } = useRelatedVideos();
+
+  const { playNext, playPrev, videos: playlist } = usePlaylistStore();
+
+  const handleLike = useCallback(async (action: 1 | 2) => {
+    const success = await likeVideo(bvid as string, action);
+    if (!success) console.warn(`点赞操作失败 BVID: ${bvid}`);
+  }, [bvid]);
+
+  const handlePlayNext = useCallback(async () => {
+    if (playlist.length > 0) {
+      const nextVid = await playNext();
+      if (nextVid?.bvid) {
+        router.replace(`/video/${nextVid.bvid}`);
+      }
+    }
+  }, [playNext, playlist.length, router]);
+
+  const handlePlayPrev = useCallback(() => {
+    if (playlist.length > 0) {
+      const prevVid = playPrev();
+      if (prevVid?.bvid) {
+        router.replace(`/video/${prevVid.bvid}`);
+      }
+    }
+  }, [playPrev, playlist.length, router]);
 
   useEffect(() => {
     loadRelated();
@@ -241,10 +267,15 @@ export default function TVVideoDetailScreen() {
           onAutoPlayNext={() => {
             if (nextEpId) {
               handlePlayerEpisodeChange(nextEpId);
+            } else if (playlist.length > 0) {
+              handlePlayNext(); // 若连播环境存在，优先使用 playlistStore 的连播系统
             } else if (fallbackNextId) {
               router.replace(`/video/${fallbackNextId}`);
             }
           }}
+          onPlayNext={handlePlayNext}
+          onPlayPrev={handlePlayPrev}
+          onLike={handleLike}
         />
       </View>
 

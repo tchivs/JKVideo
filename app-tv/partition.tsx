@@ -13,6 +13,7 @@ import { TVVideoCard } from '../components/tv/TVVideoCard';
 import { TVSkeleton } from '../components/tv/TVSkeleton';
 import { TVEmptyState } from '../components/tv/TVEmptyState';
 import { getRegionVideos, BILI_REGIONS } from '../services/bilibili';
+import { usePlaylistStore } from '../store/playlistStore';
 import type { VideoItem } from '../services/types';
 import { TV } from '../constants/tvTheme';
 
@@ -21,6 +22,7 @@ const SIDEBAR_W = 140;
 
 export default function PartitionScreen() {
   const router = useRouter();
+  const { setPlaylist } = usePlaylistStore();
   const { width: screenW } = useWindowDimensions();
   const [selectedTid, setSelectedTid] = useState(BILI_REGIONS[0].tid);
   const [videos, setVideos] = useState<VideoItem[]>([]);
@@ -57,13 +59,20 @@ export default function PartitionScreen() {
     fetchVideos(selectedTid, nextPage);
   }, [hasMore, loading, page, selectedTid, fetchVideos]);
 
-  const renderItem = useCallback(({ item }: { item: VideoItem }) => (
+  const renderItem = useCallback(({ item, index }: { item: VideoItem; index: number }) => (
     <TVVideoCard
       item={item}
       sidebarWidth={SIDEBAR_W}
-      onPress={() => router.push(`/video/${item.bvid}`)}
+      onPress={() => {
+        setPlaylist(videos, index, hasMore, async (currentLength) => {
+          const nextPn = Math.floor(currentLength / 20) + 1;
+          const res = await getRegionVideos(selectedTid, nextPn, 20);
+          return { items: res, hasMore: res.length >= 20 };
+        });
+        router.push(`/video/${item.bvid}`);
+      }}
     />
-  ), [router]);
+  ), [router, videos, hasMore, selectedTid, setPlaylist]);
 
   const selected = BILI_REGIONS.find(r => r.tid === selectedTid);
 
