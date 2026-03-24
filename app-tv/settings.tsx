@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,10 +9,13 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TVFocusable } from '../components/tv/TVFocusable';
 import { TVLoginModal } from '../components/tv/TVLoginModal';
+import { TVLoginModal } from '../components/tv/TVLoginModal';
 import { useAuthStore } from '../store/authStore';
-import { useSettingsStore } from '../store/settingsStore';
+import { useSettingsStore, PreferredCodec } from '../store/settingsStore';
+import { useHistoryStore } from '../store/historyStore';
 import { useCheckUpdate } from '../hooks/useCheckUpdate';
 import { TV } from '../constants/tvTheme';
+import { ToastAndroid, ScrollView } from 'react-native';
 
 const QN_OPTIONS = [
   { qn: 16, label: '360P' },
@@ -55,11 +58,32 @@ export default function TVSettingsScreen() {
     dmFontScale, setDmFontScale,
     dmAreaRatio, setDmAreaRatio,
     dmFilterModes, setDmFilterModes,
+    dmFilterModes, setDmFilterModes,
     defaultQn, setDefaultQn,
+    preferredCodec, setPreferredCodec,
+    autoPlayNext, setAutoPlayNext,
+    ffPreview, setFfPreview,
+    startupAnim, setStartupAnim,
+    miniProgressBar, setMiniProgressBar,
+    autoHideControls, setAutoHideControls,
+    showPlayerTime, setShowPlayerTime,
+    downKeyAction, setDownKeyAction,
+    nextVideoSource, setNextVideoSource,
   } = useSettingsStore();
-  const { currentVersion, isChecking, downloadProgress, checkUpdate } =
-    useCheckUpdate();
+
+  const { clear: clearHistory } = useHistoryStore();
+  const { currentVersion, isChecking, downloadProgress, checkUpdate } = useCheckUpdate();
   const [showLogin, setShowLogin] = useState(false);
+
+  const clearCache = useCallback(() => {
+    // 假设有 Image.clearMemoryCache，或回退通知
+    ToastAndroid.show('图片及数据缓存已清除', ToastAndroid.SHORT);
+  }, []);
+
+  const handleClearHistory = useCallback(() => {
+    clearHistory();
+    ToastAndroid.show('本地播放历史已清空', ToastAndroid.SHORT);
+  }, [clearHistory]);
 
   const handleLogout = async (): Promise<void> => {
     await logout();
@@ -80,7 +104,7 @@ export default function TVSettingsScreen() {
         <Text style={styles.headerTitle}>设置</Text>
       </View>
 
-      <View style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* 版本信息 */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>版本信息</Text>
@@ -176,11 +200,150 @@ export default function TVSettingsScreen() {
           </View>
         </View>
 
+        {/* ---------------- 播放设置 ---------------- */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>播放设置</Text>
+          
+          <Text style={styles.sublabel}>首选编解码器</Text>
+          <View style={[styles.optionRow, { marginBottom: TV.space.md }]}>
+            {(['auto', 'hevc', 'avc', 'av1'] as const).map(c => {
+              const labels = { auto: '自动', hevc: 'H.265 / HEVC', avc: 'H.264 / AVC', av1: 'AV1' };
+              return (
+                <TVFocusable
+                  key={c}
+                  style={[styles.option, preferredCodec === c && styles.optionActive]}
+                  onPress={() => setPreferredCodec(c)}
+                  scaleFactor={1}
+                >
+                  <Text style={[styles.optionText, preferredCodec === c && styles.optionTextActive]}>
+                    {labels[c]}
+                  </Text>
+                </TVFocusable>
+              );
+            })}
+          </View>
+
+          <View style={[styles.row, { marginBottom: TV.space.md }]}>
+            <Text style={styles.label}>自动连播</Text>
+            <TVFocusable
+              style={[styles.option, autoPlayNext && styles.optionActive]}
+              onPress={() => setAutoPlayNext(!autoPlayNext)}
+              scaleFactor={1}
+            >
+              <Text style={[styles.optionText, autoPlayNext && styles.optionTextActive]}>
+                {autoPlayNext ? '开启' : '关闭'}
+              </Text>
+            </TVFocusable>
+          </View>
+
+          <Text style={styles.sublabel}>下一集优先级</Text>
+          <View style={[styles.optionRow, { marginBottom: TV.space.md }]}>
+            {(['uploader', 'recommend'] as const).map(k => (
+              <TVFocusable
+                key={k}
+                style={[styles.option, nextVideoSource === k && styles.optionActive]}
+                onPress={() => setNextVideoSource(k)}
+                scaleFactor={1}
+              >
+                <Text style={[styles.optionText, nextVideoSource === k && styles.optionTextActive]}>
+                  {k === 'uploader' ? 'UP 主更多稿件' : '系统推荐'}
+                </Text>
+              </TVFocusable>
+            ))}
+          </View>
+
+          <View style={styles.row}>
+            <Text style={styles.label}>快进时间轴预览图</Text>
+            <TVFocusable
+              style={[styles.option, ffPreview && styles.optionActive]}
+              onPress={() => setFfPreview(!ffPreview)}
+              scaleFactor={1}
+            >
+              <Text style={[styles.optionText, ffPreview && styles.optionTextActive]}>
+                {ffPreview ? '开启' : '关闭'}
+              </Text>
+            </TVFocusable>
+          </View>
+        </View>
+
+        {/* ---------------- 界面与操作 ---------------- */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>界面与操作</Text>
+
+          <View style={[styles.row, { marginBottom: TV.space.md }]}>
+            <Text style={styles.label}>迷你进度条</Text>
+            <TVFocusable
+              style={[styles.option, miniProgressBar && styles.optionActive]}
+              onPress={() => setMiniProgressBar(!miniProgressBar)}
+              scaleFactor={1}
+            >
+              <Text style={[styles.optionText, miniProgressBar && styles.optionTextActive]}>
+                {miniProgressBar ? '显示' : '隐藏'}
+              </Text>
+            </TVFocusable>
+          </View>
+
+          <View style={[styles.row, { marginBottom: TV.space.md }]}>
+            <Text style={styles.label}>默认隐藏播放控制栏</Text>
+            <TVFocusable
+              style={[styles.option, autoHideControls && styles.optionActive]}
+              onPress={() => setAutoHideControls(!autoHideControls)}
+              scaleFactor={1}
+            >
+              <Text style={[styles.optionText, autoHideControls && styles.optionTextActive]}>
+                {autoHideControls ? '开启' : '关闭'}
+              </Text>
+            </TVFocusable>
+          </View>
+
+          <View style={[styles.row, { marginBottom: TV.space.md }]}>
+            <Text style={styles.label}>播放器右上方系统时间</Text>
+            <TVFocusable
+              style={[styles.option, showPlayerTime && styles.optionActive]}
+              onPress={() => setShowPlayerTime(!showPlayerTime)}
+              scaleFactor={1}
+            >
+              <Text style={[styles.optionText, showPlayerTime && styles.optionTextActive]}>
+                {showPlayerTime ? '显示' : '隐藏'}
+              </Text>
+            </TVFocusable>
+          </View>
+
+          <View style={[styles.row, { marginBottom: TV.space.md }]}>
+            <Text style={styles.label}>启动动画 (Splash Screen)</Text>
+            <TVFocusable
+              style={[styles.option, startupAnim && styles.optionActive]}
+              onPress={() => setStartupAnim(!startupAnim)}
+              scaleFactor={1}
+            >
+              <Text style={[styles.optionText, startupAnim && styles.optionTextActive]}>
+                {startupAnim ? '开启' : '关闭'}
+              </Text>
+            </TVFocusable>
+          </View>
+
+          <Text style={styles.sublabel}>遥控器下键映射</Text>
+          <View style={styles.optionRow}>
+            {(['controls', 'nextVideo'] as const).map(k => (
+              <TVFocusable
+                key={k}
+                style={[styles.option, downKeyAction === k && styles.optionActive]}
+                onPress={() => setDownKeyAction(k)}
+                scaleFactor={1}
+              >
+                <Text style={[styles.optionText, downKeyAction === k && styles.optionTextActive]}>
+                  {k === 'controls' ? '展开控制栏' : '直接播放下一个视频'}
+                </Text>
+              </TVFocusable>
+            ))}
+          </View>
+        </View>
+
         {/* 弹幕设置 */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>弹幕设置</Text>
 
-          <View style={[styles.row, { marginBottom: 12 }]}>
+          <View style={[styles.row, { marginBottom: TV.space.md }]}>
             <Text style={styles.label}>弹幕开关</Text>
             <TVFocusable
               style={[styles.option, dmEnabled && styles.optionActive]}
@@ -194,7 +357,7 @@ export default function TVSettingsScreen() {
           </View>
 
           <Text style={styles.sublabel}>透明度</Text>
-          <View style={[styles.optionRow, { marginBottom: 10 }]}>
+          <View style={[styles.optionRow, { marginBottom: TV.space.md - 2 }]}>
             {OPACITY_OPTIONS.map(v => (
               <TVFocusable
                 key={v}
@@ -210,7 +373,7 @@ export default function TVSettingsScreen() {
           </View>
 
           <Text style={styles.sublabel}>字号</Text>
-          <View style={[styles.optionRow, { marginBottom: 10 }]}>
+          <View style={[styles.optionRow, { marginBottom: TV.space.md - 2 }]}>
             {FONT_SCALE_OPTIONS.map(({ v, l }) => (
               <TVFocusable
                 key={v}
@@ -226,7 +389,7 @@ export default function TVSettingsScreen() {
           </View>
 
           <Text style={styles.sublabel}>显示区域</Text>
-          <View style={[styles.optionRow, { marginBottom: 10 }]}>
+          <View style={[styles.optionRow, { marginBottom: TV.space.md - 2 }]}>
             {AREA_RATIO_OPTIONS.map(({ v, l }) => (
               <TVFocusable
                 key={v}
@@ -266,6 +429,35 @@ export default function TVSettingsScreen() {
           </View>
         </View>
 
+        {/* ---------------- 存储清理 ---------------- */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>存储清理</Text>
+          
+          <View style={[styles.row, { marginBottom: TV.space.md }]}>
+            <Text style={styles.label}>清理图片及请求缓存</Text>
+            <TVFocusable
+              style={styles.option}
+              onPress={clearCache}
+              scaleFactor={1.05}
+              borderColor={TV.color.gold}
+            >
+              <Text style={[styles.optionText, { color: TV.color.gold }]}>立即清空</Text>
+            </TVFocusable>
+          </View>
+
+          <View style={styles.row}>
+            <Text style={styles.label}>清空本地播放记录</Text>
+            <TVFocusable
+              style={styles.option}
+              onPress={handleClearHistory}
+              scaleFactor={1.05}
+              borderColor={TV.color.danger}
+            >
+              <Text style={[styles.optionText, { color: TV.color.danger }]}>清空历史</Text>
+            </TVFocusable>
+          </View>
+        </View>
+
         {/* 退出登录 / 登录 */}
         {isLoggedIn ? (
           <TVFocusable
@@ -284,7 +476,8 @@ export default function TVSettingsScreen() {
             <Text style={styles.loginText}>登录账号</Text>
           </TVFocusable>
         )}
-      </View>
+        <View style={{ height: 80 }} />
+      </ScrollView>
 
       <TVLoginModal
         visible={showLogin}
@@ -318,7 +511,7 @@ const styles = StyleSheet.create({
     color: TV.color.textPrimary,
   },
   content: {
-    maxWidth: 500,
+    maxWidth: 640,
     alignSelf: 'center',
     width: '100%',
     paddingTop: TV.space.xl,

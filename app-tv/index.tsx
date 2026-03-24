@@ -17,18 +17,32 @@ import { TVLiveCard } from '../components/tv/TVLiveCard';
 import { TVFocusable } from '../components/tv/TVFocusable';
 import { TVLoginModal } from '../components/tv/TVLoginModal';
 import { TVSkeleton } from '../components/tv/TVSkeleton';
+import { TVEmptyState } from '../components/tv/TVEmptyState';
+import { TVLoading } from '../components/tv/TVLoading';
 import { useVideoList } from '../hooks/useVideoList';
 import { useLiveList } from '../hooks/useLiveList';
 import { useAuthStore } from '../store/authStore';
+import { useHistoryStore } from '../store/historyStore';
 import { proxyImageUrl } from '../utils/imageUrl';
+import { LinearGradient } from 'expo-linear-gradient';
 import type { VideoItem, LiveRoom } from '../services/types';
 import { TV } from '../constants/tvTheme';
 
-type TabKey = 'hot' | 'live';
+function formatDuration(sec: number): string {
+  if (sec <= 0 || isNaN(sec)) return '0:00';
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = Math.floor(sec % 60);
+  if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
 
-const TABS: { key: TabKey; label: string; icon: string }[] = [
-  { key: 'hot', label: '热门', icon: 'flame' },
-  { key: 'live', label: '直播', icon: 'radio' },
+type TabKey = 'hot' | 'dynamic' | 'live';
+
+const TABS: { key: TabKey; label: string; icon: string; color: string }[] = [
+  { key: 'hot', label: '热门', icon: 'flame', color: TV.color.hot },
+  { key: 'dynamic', label: '动态', icon: 'planet', color: TV.color.info },
+  { key: 'live', label: '直播', icon: 'radio', color: TV.color.premium },
 ];
 
 const LIVE_AREAS = [
@@ -57,14 +71,40 @@ export default function TVHomeScreen(): React.JSX.Element {
     refreshing: liveRefreshing,
   } = useLiveList();
   const { isLoggedIn, face } = useAuthStore();
+  const { items: historyItems, getProgress, restore: restoreHistory } = useHistoryStore();
   const [activeTab, setActiveTab] = useState<TabKey>('hot');
   const [showLogin, setShowLogin] = useState(false);
   const [liveAreaId, setLiveAreaId] = useState(0);
   const contentOpacity = useRef(new Animated.Value(1)).current;
 
+  // 动态数据流状态
+  const [dynamicItems, setDynamicItems] = useState<VideoItem[]>([]);
+  const [dynamicOffset, setDynamicOffset] = useState('');
+  const [dynamicLoading, setDynamicLoading] = useState(false);
+  const { getDynamicFeeds } = require('../services/bilibili');
+
+  const loadDynamic = useCallback(async (isRefresh = false) => {
+    if (dynamicLoading) return;
+    setDynamicLoading(true);
+    try {
+      const targetOffset = isRefresh ? '' : dynamicOffset;
+      const { items, nextOffset } = await getDynamicFeeds(targetOffset);
+      if (items.length > 0) {
+        setDynamicItems(prev => isRefresh ? items : [...prev, ...items]);
+        setDynamicOffset(nextOffset);
+      }
+    } finally {
+      setDynamicLoading(false);
+    }
+  }, [dynamicOffset, dynamicLoading]);
+
   useEffect(() => {
+    restoreHistory();
     load();
   }, []);
+
+  // 获取最近播放的一条记录
+  const lastWatched = activeTab === 'hot' && historyItems.length > 0 ? historyItems[0] : null;
 
   // 将 pages 展平为 VideoItem 数组
   const allVideos = useMemo(() => {
@@ -87,6 +127,8 @@ export default function TVHomeScreen(): React.JSX.Element {
         setActiveTab(key);
         if (key === 'live' && rooms.length === 0) {
           liveLoad(true, liveAreaId);
+        } else if (key === 'dynamic' && dynamicItems.length === 0) {
+          loadDynamic(true);
         }
         Animated.timing(contentOpacity, {
           toValue: 1,
@@ -115,6 +157,7 @@ export default function TVHomeScreen(): React.JSX.Element {
       <TVVideoCard
         item={item}
         onPress={() => router.push(`/video/${item.bvid}` as any)}
+        sidebarWidth={TV.sidebar.width}
       />
     ),
     [router],
@@ -125,6 +168,7 @@ export default function TVHomeScreen(): React.JSX.Element {
       <TVLiveCard
         item={item}
         onPress={() => router.push(`/live/${item.roomid}` as any)}
+        sidebarWidth={TV.sidebar.width}
       />
     ),
     [router],
@@ -136,37 +180,42 @@ export default function TVHomeScreen(): React.JSX.Element {
       <View style={styles.sidebar}>
         <Text style={styles.logo}>JK</Text>
 
-        {TABS.map(tab => (
-          <TVFocusable
-            key={tab.key}
-            style={[
-              styles.sidebarItem,
-              activeTab === tab.key && styles.sidebarItemActive,
-            ]}
-            onPress={() => handleTabChange(tab.key)}
-            scaleFactor={1}
-            accessibilityLabel={tab.label}
-          >
-            <Ionicons
-              name={tab.icon as any}
-              size={20}
-              color={activeTab === tab.key ? TV.color.accent : TV.color.textTertiary}
-            />
-            <Text
+        {TABS.map(tab => {
+          const isActive = activeTab === tab.key;
+          return (
+            <TVFocusable
+              key={tab.key}
               style={[
-                styles.sidebarText,
-                activeTab === tab.key && styles.sidebarTextActive,
+                styles.sidebarItem,
+                isActive && { backgroundColor: `${tab.color}25` }, // 0.15 hex alpha approx
               ]}
+              onPress={() => handleTabChange(tab.key)}
+              scaleFactor={1}
+              borderColor={tab.color}
+              accessibilityLabel={tab.label}
             >
-              {tab.label}
-            </Text>
-          </TVFocusable>
-        ))}
+              <Ionicons
+                name={tab.icon as any}
+                size={20}
+                color={isActive ? tab.color : TV.color.textTertiary}
+              />
+              <Text
+                style={[
+                  styles.sidebarText,
+                  isActive && { color: tab.color, fontWeight: '600' },
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </TVFocusable>
+          );
+        })}
 
         <TVFocusable
           style={styles.sidebarItem}
           onPress={() => router.push('/search' as any)}
           scaleFactor={1}
+          borderColor={TV.color.info}
           accessibilityLabel="搜索"
         >
           <Ionicons name="search" size={20} color={TV.color.textTertiary} />
@@ -177,10 +226,33 @@ export default function TVHomeScreen(): React.JSX.Element {
           style={styles.sidebarItem}
           onPress={() => router.push('/history' as any)}
           scaleFactor={1}
+          borderColor={TV.color.success}
           accessibilityLabel="历史记录"
         >
           <Ionicons name="time-outline" size={20} color={TV.color.textTertiary} />
           <Text style={styles.sidebarText}>历史</Text>
+        </TVFocusable>
+        
+        <TVFocusable
+          style={styles.sidebarItem}
+          onPress={() => router.push('/favorites' as any)}
+          scaleFactor={1}
+          borderColor={TV.color.gold}
+          accessibilityLabel="我的收藏"
+        >
+          <Ionicons name="star-outline" size={20} color={TV.color.textTertiary} />
+          <Text style={styles.sidebarText}>收藏</Text>
+        </TVFocusable>
+
+        <TVFocusable
+          style={styles.sidebarItem}
+          onPress={() => router.push('/following' as any)}
+          scaleFactor={1}
+          borderColor={TV.color.hot}
+          accessibilityLabel="追番追剧"
+        >
+          <Ionicons name="heart-outline" size={20} color={TV.color.textTertiary} />
+          <Text style={styles.sidebarText}>追番</Text>
         </TVFocusable>
 
         <TVFocusable
@@ -245,28 +317,82 @@ export default function TVHomeScreen(): React.JSX.Element {
             maxToRenderPerBatch={10}
             initialNumToRender={15}
             removeClippedSubviews
-            ListFooterComponent={
+            ListHeaderComponent={
+              lastWatched ? (
+                <View style={[styles.resumeSection, { flex: 1 }]}>
+                  <Text style={styles.resumeHeaderTitle}>最近播放</Text>
+                  <TVFocusable
+                    style={styles.resumeCard}
+                    onPress={() => router.push(`/video/${lastWatched.bvid}` as any)}
+                    scaleFactor={1.02}
+                    hasTVPreferredFocus
+                  >
+                    <Image
+                      source={{ uri: proxyImageUrl(lastWatched.pic) }}
+                      style={styles.resumeCover}
+                      resizeMode="cover"
+                    />
+                    <LinearGradient
+                      colors={['transparent', 'rgba(0,0,0,0.85)']}
+                      style={styles.resumeGradient}
+                    />
+                    <View style={styles.resumeInfo}>
+                      <Text style={styles.resumeVideoTitle} numberOfLines={2}>
+                        {lastWatched.title}
+                      </Text>
+                      <View style={styles.resumeMetaWrap}>
+                        <Ionicons name="play-circle" size={18} color={TV.color.accent} />
+                        <Text style={styles.resumeAuthor}>
+                          {lastWatched.ownerName}
+                          {' · '}
+                          看到 {formatDuration(getProgress(lastWatched.bvid))}
+                          {lastWatched.duration ? ` / ${formatDuration(lastWatched.duration)}` : ''}
+                        </Text>
+                      </View>
+                    </View>
+                  </TVFocusable>
+                </View>
+              ) : null
+            }
+            ListFooterComponent={loading ? <TVLoading /> : null}
+            ListEmptyComponent={
               loading ? (
-                <ActivityIndicator
-                  color={TV.color.accent}
-                  style={styles.loader}
+                <TVSkeleton columns={NUM_COLUMNS} count={NUM_COLUMNS * 2} sidebarWidth={TV.sidebar.width} />
+              ) : (
+                <TVEmptyState
+                  title="内容加载失败"
+                  hint="请检查网络状态后重试"
+                  onRetry={() => load(true)}
+                  style={{ flex: 1, paddingTop: 100 }}
+                />
+              )
+            }
+          />
+        ) : activeTab === 'dynamic' ? (
+          <FlatList
+            data={dynamicItems}
+            keyExtractor={(item, index) => `${item.bvid}-${index}`}
+            renderItem={renderVideoItem}
+            numColumns={NUM_COLUMNS}
+            columnWrapperStyle={styles.row}
+            contentContainerStyle={styles.listContent}
+            onEndReached={() => loadDynamic()}
+            onEndReachedThreshold={0.5}
+            windowSize={5}
+            maxToRenderPerBatch={10}
+            initialNumToRender={15}
+            removeClippedSubviews
+            ListEmptyComponent={
+              !dynamicLoading ? (
+                <TVEmptyState
+                  title="动态空空如也"
+                  hint="也许网络出小差了，或 UP 主们都去摸鱼了"
+                  onRetry={() => loadDynamic(true)}
+                  style={{ flex: 1, paddingTop: 100 }}
                 />
               ) : null
             }
-            ListEmptyComponent={
-              loading ? (
-                <TVSkeleton columns={NUM_COLUMNS} count={NUM_COLUMNS * 2} />
-              ) : (
-                <View style={styles.emptyContainer}>
-                  <Ionicons name="cloud-offline-outline" size={64} color={TV.color.textTertiary} />
-                  <Text style={styles.emptyText}>内容加载失败</Text>
-                  <Text style={styles.emptyHint}>请检查网络状态后重试</Text>
-                  <TVFocusable onPress={() => load(true)} style={styles.retryBtn} scaleFactor={1.05}>
-                    <Text style={styles.retryText}>重试</Text>
-                  </TVFocusable>
-                </View>
-              )
-            }
+            ListFooterComponent={dynamicLoading ? <TVLoading /> : null}
           />
         ) : (
           <FlatList
@@ -306,26 +432,17 @@ export default function TVHomeScreen(): React.JSX.Element {
                 ))}
               </View>
             }
-            ListFooterComponent={
-              liveLoading ? (
-                <ActivityIndicator
-                  color={TV.color.accent}
-                  style={styles.loader}
-                />
-              ) : null
-            }
+            ListFooterComponent={liveLoading ? <TVLoading /> : null}
             ListEmptyComponent={
               liveLoading ? (
-                <TVSkeleton columns={NUM_COLUMNS} count={NUM_COLUMNS * 2} />
+                <TVSkeleton columns={NUM_COLUMNS} count={NUM_COLUMNS * 2} sidebarWidth={TV.sidebar.width} />
               ) : (
-                <View style={styles.emptyContainer}>
-                  <Ionicons name="cloud-offline-outline" size={64} color={TV.color.textTertiary} />
-                  <Text style={styles.emptyText}>直播流获取失败</Text>
-                  <Text style={styles.emptyHint}>可能是网络受到限制，请稍后重试</Text>
-                  <TVFocusable onPress={() => liveLoad(true, liveAreaId)} style={styles.retryBtn} scaleFactor={1.05}>
-                    <Text style={styles.retryText}>重试</Text>
-                  </TVFocusable>
-                </View>
+                <TVEmptyState
+                  title="直播流获取失败"
+                  hint="可能是网络受到限制，请稍后重试"
+                  onRetry={() => liveLoad(true, liveAreaId)}
+                  style={{ flex: 1, paddingTop: 100 }}
+                />
               )
             }
           />
@@ -369,17 +486,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  sidebarItemActive: {
-    backgroundColor: 'rgba(0,174,236,0.1)',
-  },
   sidebarText: {
     fontSize: TV.font.xs,
     color: TV.color.textTertiary,
     marginTop: TV.space.xs,
-  },
-  sidebarTextActive: {
-    color: TV.color.accent,
-    fontWeight: '600',
   },
   content: {
     flex: 1,
@@ -390,9 +500,6 @@ const styles = StyleSheet.create({
   row: {
     gap: TV.layout.gridGap,
     paddingHorizontal: 0,
-  },
-  loader: {
-    marginVertical: TV.space.xl,
   },
   avatar: {
     width: 28,
@@ -415,8 +522,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   areaChipActive: {
-    backgroundColor: TV.color.accentBg,
-    borderColor: TV.color.accent,
+    backgroundColor: `${TV.color.premium}25`, // roughly 15% opacity premium indigo
+    borderColor: TV.color.premium,
   },
   areaChipText: {
     fontSize: TV.font.md,
@@ -424,37 +531,58 @@ const styles = StyleSheet.create({
   },
   areaChipTextActive: {
     fontSize: 14,
-    color: '#111',
+    color: TV.color.premium,
     fontWeight: '600',
   },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 100,
-    gap: TV.space.md,
+  // 续播卡片
+  resumeSection: {
+    paddingHorizontal: TV.layout.gridGap,
+    marginBottom: TV.space.xl,
   },
-  emptyText: {
+  resumeHeaderTitle: {
+    fontSize: TV.font.xl,
     color: TV.color.textSecondary,
-    fontSize: TV.font.lg,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    marginBottom: TV.space.md,
   },
-  emptyHint: {
-    color: TV.color.textTertiary,
-    fontSize: TV.font.md,
-  },
-  retryBtn: {
-    marginTop: TV.space.lg,
-    paddingHorizontal: TV.space.xl,
-    paddingVertical: TV.space.md,
+  resumeCard: {
+    width: '100%',
+    height: 220,
+    borderRadius: TV.radius.lg,
+    overflow: 'hidden',
     backgroundColor: TV.color.surfaceAlt,
-    borderRadius: TV.radius.md,
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  retryText: {
-    color: TV.color.textPrimary,
-    fontSize: TV.font.md,
-    fontWeight: '500',
+  resumeCover: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  resumeGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  resumeInfo: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: TV.space.xl,
+  },
+  resumeVideoTitle: {
+    fontSize: TV.font.heading,
+    fontWeight: 'bold',
+    color: TV.color.white,
+    marginBottom: TV.space.sm,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  resumeMetaWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: TV.space.xs,
+  },
+  resumeAuthor: {
+    fontSize: TV.font.xl,
+    color: TV.color.textSecondary,
   },
 });

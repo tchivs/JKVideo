@@ -13,12 +13,15 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TVVideoPlayer } from '../../components/tv/TVVideoPlayer';
 import { TVFocusable } from '../../components/tv/TVFocusable';
+import { TVEmptyState } from '../../components/tv/TVEmptyState';
+import { TVLoading } from '../../components/tv/TVLoading';
 import { getDanmaku } from '../../services/bilibili';
 import type { DanmakuItem, VideoItem } from '../../services/types';
 import { useVideoDetail } from '../../hooks/useVideoDetail';
 import { useComments } from '../../hooks/useComments';
 import { useRelatedVideos } from '../../hooks/useRelatedVideos';
 import { useHistoryStore } from '../../store/historyStore';
+import { useSettingsStore } from '../../store/settingsStore';
 import { formatCount } from '../../utils/format';
 import { proxyImageUrl } from '../../utils/imageUrl';
 import { TV } from '../../constants/tvTheme';
@@ -188,6 +191,35 @@ export default function TVVideoDetailScreen() {
     [hasEpisodes, hasPages, pages, router, handlePageChange],
   );
 
+  // 计算自动连播的下一个标识
+  const nextEpId = useMemo(() => {
+    if (hasEpisodes && currentEpIndex >= 0 && currentEpIndex < episodes.length - 1) {
+      return episodes[currentEpIndex + 1].bvid;
+    }
+    if (hasPages && currentPage >= 0 && currentPage < pages.length - 1) {
+      return String(pages[currentPage + 1].cid);
+    }
+    return undefined;
+  }, [hasEpisodes, currentEpIndex, episodes, hasPages, currentPage, pages]);
+
+  const { nextVideoSource } = useSettingsStore();
+
+  const fallbackNextId = useMemo(() => {
+    if (!relatedVideos || relatedVideos.length === 0) return undefined;
+    if (nextVideoSource === 'recommend') {
+      return relatedVideos[0].bvid;
+    }
+    if (nextVideoSource === 'uploader') {
+      const authorId = video?.owner?.mid;
+      const sameAuthorVideo = relatedVideos.find(v => v.owner?.mid === authorId);
+      if (sameAuthorVideo) return sameAuthorVideo.bvid;
+      return relatedVideos[0].bvid; // 没有作者其它稿件，就退回推荐第一个
+    }
+    return undefined;
+  }, [nextVideoSource, relatedVideos, video?.owner?.mid]);
+
+  const autoPlayAvail = !!nextEpId || !!fallbackNextId;
+
   return (
     <View style={styles.container}>
       {/* 左侧播放器 */}
@@ -205,13 +237,21 @@ export default function TVVideoDetailScreen() {
           initialTime={savedProgress}
           episodes={playerEpisodes}
           onEpisodeChange={handlePlayerEpisodeChange}
+          hasNextEpisode={autoPlayAvail}
+          onAutoPlayNext={() => {
+            if (nextEpId) {
+              handlePlayerEpisodeChange(nextEpId);
+            } else if (fallbackNextId) {
+              router.replace(`/video/${fallbackNextId}`);
+            }
+          }}
         />
       </View>
 
       {/* 右侧信息面板 */}
       <View style={styles.infoSection}>
         {videoLoading ? (
-          <ActivityIndicator color={TV.color.accent} style={styles.loader} />
+          <TVLoading style={{ flex: 1, justifyContent: 'center' }} />
         ) : videoError ? (
           <View style={styles.errorContainer}>
             <Ionicons name="warning-outline" size={36} color={TV.color.danger} />
@@ -471,10 +511,7 @@ export default function TVVideoDetailScreen() {
                   </TVFocusable>
                 ))}
                 {relatedLoading && (
-                  <ActivityIndicator
-                    color={TV.color.accent}
-                    style={styles.loader}
-                  />
+                  <TVLoading />
                 )}
               </ScrollView>
             ) : (
@@ -558,17 +595,10 @@ export default function TVVideoDetailScreen() {
                 )}
                 ListEmptyComponent={
                   !cmtLoading ? (
-                    <Text style={styles.emptyText}>暂无评论</Text>
+                    <TVEmptyState title="暂无评论" icon="chatbubble-outline" />
                   ) : null
                 }
-                ListFooterComponent={
-                  cmtLoading ? (
-                    <ActivityIndicator
-                      color={TV.color.accent}
-                      style={styles.loader}
-                    />
-                  ) : null
-                }
+                ListFooterComponent={cmtLoading ? <TVLoading /> : null}
               />
             )}
           </>
@@ -598,7 +628,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: TV.color.surface,
   },
-  loader: { marginVertical: 20 },
   errorContainer: {
     flex: 1,
     alignItems: 'center',
@@ -786,10 +815,4 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   cmtLike: { fontSize: 10, color: TV.color.textDisabled },
-  emptyText: {
-    textAlign: 'center',
-    color: TV.color.textDisabled,
-    fontSize: 13,
-    marginTop: 20,
-  },
 });

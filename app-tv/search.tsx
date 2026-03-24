@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -14,8 +14,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { TVVideoCard } from '../components/tv/TVVideoCard';
 import { TVFocusable } from '../components/tv/TVFocusable';
 import { TVFadeIn } from '../components/tv/TVFadeIn';
+import { TVEmptyState } from '../components/tv/TVEmptyState';
+import { TVLoading } from '../components/tv/TVLoading';
+import { TVButton } from '../components/tv/TVButton';
+import { TVSkeleton } from '../components/tv/TVSkeleton';
 import { useSearch } from '../hooks/useSearch';
 import { useHistoryStore } from '../store/historyStore';
+import { getSearchSquare, type SearchHotItem } from '../services/bilibili';
 import type { VideoItem } from '../services/types';
 import { TV } from '../constants/tvTheme';
 
@@ -32,6 +37,12 @@ export default function TVSearchScreen() {
   const { searchHistory, addSearchHistory, clearSearchHistory } =
     useHistoryStore();
   const inputRef = useRef<TextInput>(null);
+
+  const [trending, setTrending] = useState<SearchHotItem[]>([]);
+
+  useEffect(() => {
+    getSearchSquare().then(setTrending).catch(console.warn);
+  }, []);
 
   const handleSearch = useCallback(
     (kw?: string) => {
@@ -56,6 +67,7 @@ export default function TVSearchScreen() {
   );
 
   const showHistory = results.length === 0 && !loading && searchHistory.length > 0;
+  const showTrending = results.length === 0 && !loading && trending.length > 0;
 
   return (
     <View style={styles.container}>
@@ -85,15 +97,12 @@ export default function TVSearchScreen() {
           />
         </View>
 
-        <TVFocusable
-          style={[styles.searchBtn, loading && styles.searchBtnDisabled]}
+        <TVButton
+          title="搜索"
           onPress={() => handleSearch()}
-          scaleFactor={1.05}
-          accessibilityLabel="搜索"
+          variant="primary"
           disabled={loading}
-        >
-          <Text style={styles.searchBtnText}>搜索</Text>
-        </TVFocusable>
+        />
       </View>
 
       {/* 搜索历史区域 */}
@@ -101,20 +110,17 @@ export default function TVSearchScreen() {
         <View style={styles.historySection}>
           <View style={styles.historyHeader}>
             <Text style={styles.historyTitle}>搜索历史</Text>
-            <TVFocusable
-              style={styles.clearBtn}
+            <TVButton
+              title="清空"
+              icon="trash-outline"
+              variant="secondary"
               onPress={() =>
                 Alert.alert('确认清空', '清空所有搜索历史？', [
                   { text: '取消', style: 'cancel' },
                   { text: '清空', style: 'destructive', onPress: clearSearchHistory },
                 ])
               }
-              scaleFactor={1}
-              accessibilityLabel="清空搜索历史"
-            >
-              <Ionicons name="trash-outline" size={14} color={TV.color.textTertiary} />
-              <Text style={styles.clearText}>清空</Text>
-            </TVFocusable>
+            />
           </View>
           <ScrollView
             horizontal
@@ -138,6 +144,41 @@ export default function TVSearchScreen() {
         </View>
       )}
 
+      {/* 热搜推荐 */}
+      {showTrending && (
+        <View style={styles.historySection}>
+          <View style={styles.historyHeader}>
+            <Text style={styles.historyTitle}>B站热搜榜</Text>
+          </View>
+          <View style={styles.trendingGrid}>
+            {trending.map((item, i) => {
+              const kw = item.show_name || item.keyword;
+              // 过滤掉过于奇怪或非视频方向的搜索词（可选保障）
+              if (!kw) return null;
+              return (
+                <TVFocusable
+                  key={`trending-${kw}-${i}`}
+                  style={[styles.trendingChip, { width: '31%' }]}
+                  onPress={() => {
+                    setKeyword(kw);
+                    handleSearch(kw);
+                  }}
+                  scaleFactor={1.03}
+                >
+                  <Text style={styles.trendingIndex}>{i + 1}</Text>
+                  <Text style={styles.trendingChipText} numberOfLines={1}>
+                    {kw}
+                  </Text>
+                  {item.icon && (
+                    <Text style={styles.trendingHotIcon}>热</Text>
+                  )}
+                </TVFocusable>
+              );
+            })}
+          </View>
+        </View>
+      )}
+
       {/* 搜索结果 */}
       <FlatList
         data={results}
@@ -149,21 +190,18 @@ export default function TVSearchScreen() {
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         ListEmptyComponent={
-          !loading && !showHistory ? (
-            <TVFadeIn style={styles.emptyBox}>
-              <Ionicons name="search-outline" size={48} color={TV.color.textTertiary} />
-              <Text style={styles.emptyText}>
-                {results.length === 0 && keyword.trim()
-                  ? '没有找到相关视频'
-                  : '输入关键词搜索'}
-              </Text>
-            </TVFadeIn>
+          loading ? (
+            <TVSkeleton columns={NUM_COLUMNS} count={15} />
+          ) : !showHistory ? (
+            <TVEmptyState
+              title={results.length === 0 && keyword.trim() ? '没有找到相关视频' : '输入关键词搜索'}
+              icon="search-outline"
+              style={{ paddingTop: 80 }}
+            />
           ) : null
         }
         ListFooterComponent={
-          loading && results.length > 0 ? (
-            <ActivityIndicator color={TV.color.accent} style={styles.loader} />
-          ) : null
+          loading && results.length > 0 ? <TVLoading /> : null
         }
       />
     </View>
@@ -201,16 +239,6 @@ const styles = StyleSheet.create({
     color: TV.color.textPrimary,
     padding: 0,
   },
-  searchBtn: {
-    paddingHorizontal: TV.space.lg,
-    paddingVertical: TV.space.sm,
-    backgroundColor: TV.color.accent,
-    borderRadius: TV.radius.md,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  searchBtnDisabled: { opacity: 0.5 },
-  searchBtnText: { fontSize: TV.font.lg, color: TV.color.white, fontWeight: '600' },
   // 搜索历史
   historySection: {
     paddingHorizontal: TV.layout.contentPaddingH,
@@ -224,17 +252,6 @@ const styles = StyleSheet.create({
     marginBottom: TV.space.sm,
   },
   historyTitle: { fontSize: TV.font.base, color: TV.color.textTertiary },
-  clearBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: TV.space.xs,
-    paddingHorizontal: TV.space.sm,
-    paddingVertical: TV.space.xs,
-    borderRadius: TV.radius.sm,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  clearText: { fontSize: TV.font.md, color: TV.color.textTertiary },
   historyList: { gap: TV.space.sm },
   historyChip: {
     paddingHorizontal: TV.space.lg - 2,
@@ -248,12 +265,43 @@ const styles = StyleSheet.create({
   // 结果
   listContent: { padding: TV.layout.listPadding },
   row: { gap: TV.layout.gridGap },
-  emptyBox: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 80,
+  // 热搜
+  trendingGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: TV.space.md,
+    marginTop: TV.space.xs,
   },
-  emptyText: { fontSize: TV.font.xl, color: TV.color.textTertiary },
-  loader: { marginVertical: TV.space.xl },
+  trendingChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: TV.color.surfaceLight,
+    paddingHorizontal: TV.space.md,
+    paddingVertical: TV.space.md,
+    borderRadius: TV.radius.md,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    gap: TV.space.sm,
+  },
+  trendingIndex: {
+    fontSize: TV.font.xl,
+    fontWeight: 'bold',
+    color: TV.color.accent,
+    width: 28,
+    textAlign: 'center',
+  },
+  trendingChipText: {
+    fontSize: TV.font.lg,
+    color: TV.color.textSecondary,
+    flex: 1,
+  },
+  trendingHotIcon: {
+    fontSize: TV.font.sm,
+    color: TV.color.danger,
+    backgroundColor: 'rgba(255,71,87,0.15)',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
 });

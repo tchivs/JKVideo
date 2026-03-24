@@ -10,7 +10,8 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TVFocusable } from '../components/tv/TVFocusable';
-import { TVFadeIn } from '../components/tv/TVFadeIn';
+import { TVButton } from '../components/tv/TVButton';
+import { TVEmptyState } from '../components/tv/TVEmptyState';
 import { useHistoryStore, type HistoryItem } from '../store/historyStore';
 import { proxyImageUrl } from '../utils/imageUrl';
 import { formatDuration } from '../utils/format';
@@ -97,8 +98,10 @@ export default function TVHistoryScreen() {
         <Text style={styles.headerTitle}>观看历史</Text>
         <View style={{ flex: 1 }} />
         {items.length > 0 && (
-          <TVFocusable
-            style={styles.clearBtn}
+          <TVButton
+            title="清空"
+            icon="trash-outline"
+            variant="secondary"
             onPress={() =>
               Alert.alert(
                 '确认清空',
@@ -109,21 +112,17 @@ export default function TVHistoryScreen() {
                 ],
               )
             }
-            scaleFactor={1}
-            accessibilityLabel="清空观看历史"
-          >
-            <Ionicons name="trash-outline" size={16} color={TV.color.textTertiary} />
-            <Text style={styles.clearText}>清空</Text>
-          </TVFocusable>
+          />
         )}
       </View>
 
       {items.length === 0 ? (
-        <TVFadeIn style={styles.empty}>
-          <Ionicons name="time-outline" size={56} color={TV.color.textTertiary} />
-          <Text style={styles.emptyText}>暂无观看记录</Text>
-          <Text style={styles.emptyHint}>观看视频后自动记录在这里</Text>
-        </TVFadeIn>
+        <TVEmptyState
+          title="暂无观看记录"
+          hint="观看视频后自动记录在这里"
+          icon="time-outline"
+          style={{ flex: 1 }}
+        />
       ) : (
         <FlatList
           data={items}
@@ -160,17 +159,6 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   headerTitle: { fontSize: TV.font.title, fontWeight: '600', color: TV.color.textPrimary },
-  clearBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: TV.space.xs,
-    paddingHorizontal: TV.space.md,
-    paddingVertical: TV.space.sm - 2,
-    borderRadius: TV.radius.sm,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  clearText: { fontSize: TV.font.base, color: TV.color.textTertiary },
   listContent: { padding: TV.layout.listPadding },
   gridRow: { gap: TV.layout.gridGap },
   row: {
@@ -219,12 +207,4 @@ const styles = StyleSheet.create({
   },
   meta: { fontSize: TV.font.sm, color: TV.color.textTertiary, marginBottom: 2 },
   time: { fontSize: TV.font.xs, color: TV.color.textDisabled },
-  empty: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: TV.space.md,
-  },
-  emptyText: { fontSize: TV.font.xl, color: TV.color.textSecondary },
-  emptyHint: { fontSize: TV.font.md, color: TV.color.textTertiary },
 });
