@@ -13,6 +13,7 @@ import { TV } from '../../constants/tvTheme';
 interface TVFocusableProps {
   children?: React.ReactNode;
   onPress?: () => void;
+  onLongPress?: () => void;
   style?: StyleProp<ViewStyle>;
   focusStyle?: ViewStyle;
   scaleFactor?: number;
@@ -34,6 +35,7 @@ interface TVFocusableProps {
 export function TVFocusable({
   children,
   onPress,
+  onLongPress,
   style,
   focusStyle,
   scaleFactor = 1.05,
@@ -115,6 +117,7 @@ export function TVFocusable({
     >
       <Pressable
         onPress={onPress}
+        onLongPress={onLongPress}
         onFocus={handleFocus}
         onBlur={handleBlur}
         disabled={disabled}

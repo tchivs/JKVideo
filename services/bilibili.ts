@@ -705,3 +705,55 @@ export async function likeVideo(bvid: string, action: 1 | 2): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * 获取 UP 主的基础信息 (空间个人简介)
+ */
+export async function getUserSpaceInfo(mid: string): Promise<any> {
+  try {
+    const { imgKey, subKey } = await getWbiKeys();
+    const signed = signWbi({ mid }, imgKey, subKey);
+    const res = await api.get('/x/space/wbi/acc/info', { params: signed });
+    return res.data.data;
+  } catch (e: any) {
+    console.warn('getUserSpaceInfo failed:', e?.message);
+    return null;
+  }
+}
+
+/**
+ * 获取 UP 主的投稿视频列表瀑布流
+ */
+export async function getUserSpaceVideos(mid: string, pn = 1, ps = 20): Promise<{ items: VideoItem[], hasMore: boolean }> {
+  try {
+    const { imgKey, subKey } = await getWbiKeys();
+    const signed = signWbi(
+      { mid, pn, ps, index: 1, order: 'pubdate' },
+      imgKey,
+      subKey,
+    );
+    const res = await api.get('/x/space/wbi/arc/search', { params: signed });
+    const data = res.data.data;
+    const vlist = data?.list?.vlist || [];
+    
+    const items: VideoItem[] = vlist.map((v: any) => ({
+      bvid: v.bvid,
+      title: v.title,
+      cover: v.pic,
+      author: v.author,
+      view: v.play,
+      danmaku: v.video_review,
+      duration: v.length, // duration maybe 'MM:SS' format here, so video card parser must handle it
+    }));
+    
+    // page info
+    const page = data?.page;
+    const count = page?.count || 0;
+    const hasMore = (pn * ps) < count;
+    
+    return { items, hasMore };
+  } catch (e: any) {
+    console.warn('getUserSpaceVideos failed:', e?.message);
+    return { items: [], hasMore: false };
+  }
+}
