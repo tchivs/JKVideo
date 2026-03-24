@@ -257,6 +257,17 @@ export default function TVHomeScreen(): React.JSX.Element {
 
         <TVFocusable
           style={styles.sidebarItem}
+          onPress={() => router.push('/partition' as any)}
+          scaleFactor={1}
+          borderColor={TV.color.info}
+          accessibilityLabel="分区浏览"
+        >
+          <Ionicons name="grid-outline" size={20} color={TV.color.textTertiary} />
+          <Text style={styles.sidebarText}>分区</Text>
+        </TVFocusable>
+
+        <TVFocusable
+          style={styles.sidebarItem}
           onPress={() => router.push('/ranking' as any)}
           scaleFactor={1}
           accessibilityLabel="排行榜"

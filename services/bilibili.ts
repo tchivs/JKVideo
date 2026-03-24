@@ -631,3 +631,46 @@ export async function getSponsorSegments(
     return [];
   }
 }
+
+// ─── 分区浏览 ────────────────────────────────────────────────────────
+
+/** B站主要分区定义 */
+export const BILI_REGIONS = [
+  { tid: 1, name: '动画', icon: '🎬' },
+  { tid: 3, name: '音乐', icon: '🎵' },
+  { tid: 4, name: '游戏', icon: '🎮' },
+  { tid: 5, name: '娱乐', icon: '🎪' },
+  { tid: 36, name: '知识', icon: '📚' },
+  { tid: 188, name: '科技', icon: '💻' },
+  { tid: 160, name: '生活', icon: '🌱' },
+  { tid: 211, name: '美食', icon: '🍜' },
+  { tid: 217, name: '动物', icon: '🐾' },
+  { tid: 119, name: '鬼畜', icon: '👾' },
+  { tid: 155, name: '时尚', icon: '👗' },
+  { tid: 202, name: '资讯', icon: '📰' },
+  { tid: 234, name: '运动', icon: '⚽' },
+  { tid: 223, name: '汽车', icon: '🚗' },
+] as const;
+
+/**
+ * 获取指定分区的热门视频列表。
+ * 使用 /x/web-interface/dynamic/region 接口，按最新排列。
+ */
+export async function getRegionVideos(
+  tid: number,
+  pn = 1,
+  ps = 20,
+): Promise<VideoItem[]> {
+  try {
+    const res = await api.get('/x/web-interface/dynamic/region', {
+      params: { rid: tid, pn, ps },
+    });
+    const archives = res.data?.data?.archives;
+    if (!Array.isArray(archives)) return [];
+    return archives as VideoItem[];
+  } catch (e: any) {
+    console.warn('getRegionVideos failed:', e?.message);
+    return [];
+  }
+}
+
