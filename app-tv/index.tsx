@@ -1,13 +1,10 @@
-import React, { useEffect, useMemo, useCallback, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useCallback, useState } from 'react';
 import {
   View,
   StyleSheet,
   Text,
   FlatList,
   Image,
-  Animated,
-  Easing,
-  useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,6 +20,7 @@ import { useAuthStore } from '../store/authStore';
 import { useHistoryStore } from '../store/historyStore';
 import { proxyImageUrl } from '../utils/imageUrl';
 import type { VideoItem, LiveRoom } from '../services/types';
+import { getDynamicFeeds } from '../services/bilibili';
 import { TV } from '../constants/tvTheme';
 
 const SIDEBAR_ITEMS = [
@@ -41,18 +39,16 @@ const SIDEBAR_ITEMS = [
  */
 export default function TVHomeScreen(): React.JSX.Element {
   const router = useRouter();
-  const { width } = useWindowDimensions();
-  
+
   // -- 数据源 Hook --
   const { pages, loading, load } = useVideoList();
   const { rooms, loading: liveLoading, load: liveLoad } = useLiveList();
   const { isLoggedIn, face } = useAuthStore();
-  const { items: historyItems, getProgress, restore: restoreHistory } = useHistoryStore();
-  
+  const { items: historyItems, restore: restoreHistory } = useHistoryStore();
+
   const [dynamicItems, setDynamicItems] = useState<VideoItem[]>([]);
   const [dynamicOffset, setDynamicOffset] = useState('');
   const [dynamicLoading, setDynamicLoading] = useState(false);
-  const { getDynamicFeeds } = require('../services/bilibili');
   
   const [showLogin, setShowLogin] = useState(false);
 
@@ -81,8 +77,26 @@ export default function TVHomeScreen(): React.JSX.Element {
     restoreHistory();
     load();
     liveLoad();
-    loadDynamic(true);
-  }, []);
+
+    let mounted = true;
+    (async () => {
+      setDynamicLoading(true);
+      try {
+        const { items, nextOffset } = await getDynamicFeeds('');
+        if (!mounted) return;
+        setDynamicItems(items);
+        setDynamicOffset(nextOffset);
+      } catch (e) {
+        console.warn('Load dynamic feeds failed', e);
+      } finally {
+        if (mounted) setDynamicLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [restoreHistory, load, liveLoad]);
 
   const allVideos = useMemo(() => {
     const items: VideoItem[] = [];
@@ -92,26 +106,47 @@ export default function TVHomeScreen(): React.JSX.Element {
 
   // -- 组装泳道配置 --
   const ROW_CARD_WIDTH = 260; // 专属的泳道横向卡片尺寸
-
-  // 主屏幕滚动项
-  const rowConfig: Array<{
+  type RowConfig = {
     id: string;
     title: string;
-    data: any[];
-    type: 'video' | 'live';
+    data: VideoItem[];
+    type: 'video';
     loading: boolean;
     onLoadMore?: () => void;
-  }> = [
+  } | {
+    id: string;
+    title: string;
+    data: LiveRoom[];
+    type: 'live';
+    loading: boolean;
+    onLoadMore?: () => void;
+  };
+
+  // 主屏幕滚动项
+  const rowConfig: RowConfig[] = [
     {
       id: 'history',
       title: '继续观看',
       data: historyItems.slice(0, 15).map(h => ({
         bvid: h.bvid,
+        aid: 0,
         title: h.title,
         pic: h.pic,
         duration: h.duration,
-        owner: { name: h.ownerName },
-        stat: { view: 0, like: 0, danmaku: 0 },
+        desc: '',
+        owner: {
+          mid: 0,
+          name: h.ownerName,
+          face: '',
+        },
+        stat: {
+          view: 0,
+          danmaku: 0,
+          reply: 0,
+          like: 0,
+          coin: 0,
+          favorite: 0,
+        },
       })), // 映射为 VideoItem 结构
       type: 'video' as const,
       loading: false,
@@ -226,37 +261,47 @@ export default function TVHomeScreen(): React.JSX.Element {
           keyExtractor={item => item.id}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.mainFeedContent}
-          renderItem={({ item }) => (
-            <TVHorizontalRow
-              title={item.title}
-              data={item.data}
-              loading={item.loading}
-              onEndReached={item.onLoadMore}
-              keyExtractor={(d: any, index) => `${item.id}-${d?.bvid || d?.roomid}-${index}`}
-              onItemFocus={(focusedItem) => setHeroActiveItem(focusedItem as any)}
-              renderItem={(info, onFocusChange) => {
-                if (item.type === 'video') {
-                  return (
+          renderItem={({ item }) => {
+            if (item.type === 'video') {
+              return (
+                <TVHorizontalRow<VideoItem>
+                  title={item.title}
+                  data={item.data}
+                  loading={item.loading}
+                  onEndReached={item.onLoadMore}
+                  keyExtractor={(d, index) => `${item.id}-${d.bvid}-${index}`}
+                  onItemFocus={focusedItem => setHeroActiveItem(focusedItem)}
+                  renderItem={(info, onFocusChange) => (
                     <TVVideoCard
-                      item={info.item as VideoItem}
-                      onPress={() => router.push(`/video/${(info.item as VideoItem).bvid}` as any)}
+                      item={info.item}
+                      onPress={() => router.push(`/video/${info.item.bvid}` as any)}
                       cardWidth={ROW_CARD_WIDTH}
                       onFocusChange={onFocusChange}
                     />
-                  );
-                } else {
-                  return (
-                    <TVLiveCard
-                      item={info.item as LiveRoom}
-                      onPress={() => router.push(`/live/${(info.item as LiveRoom).roomid}` as any)}
-                      cardWidth={ROW_CARD_WIDTH}
-                      onFocusChange={onFocusChange}
-                    />
-                  );
-                }
-              }}
-            />
-          )}
+                  )}
+                />
+              );
+            }
+
+            return (
+              <TVHorizontalRow<LiveRoom>
+                title={item.title}
+                data={item.data}
+                loading={item.loading}
+                onEndReached={item.onLoadMore}
+                keyExtractor={(d, index) => `${item.id}-${d.roomid}-${index}`}
+                onItemFocus={focusedItem => setHeroActiveItem(focusedItem)}
+                renderItem={(info, onFocusChange) => (
+                  <TVLiveCard
+                    item={info.item}
+                    onPress={() => router.push(`/live/${info.item.roomid}` as any)}
+                    cardWidth={ROW_CARD_WIDTH}
+                    onFocusChange={onFocusChange}
+                  />
+                )}
+              />
+            );
+          }}
         />
       </View>
 
@@ -325,69 +370,5 @@ const styles = StyleSheet.create({
     backgroundColor: TV.color.placeholder,
     borderWidth: 2,
     borderColor: 'transparent',
-  },
-  areaChipActive: {
-    backgroundColor: `${TV.color.premium}25`, // roughly 15% opacity premium indigo
-    borderColor: TV.color.premium,
-  },
-  areaChipText: {
-    fontSize: TV.font.md,
-    color: TV.color.textSecondary,
-  },
-  areaChipTextActive: {
-    fontSize: 14,
-    color: TV.color.premium,
-    fontWeight: '600',
-  },
-  // 续播卡片
-  resumeSection: {
-    paddingHorizontal: TV.layout.gridGap,
-    marginBottom: TV.space.xl,
-  },
-  resumeHeaderTitle: {
-    fontSize: TV.font.xl,
-    color: TV.color.textSecondary,
-    fontWeight: 'bold',
-    marginBottom: TV.space.md,
-  },
-  resumeCard: {
-    width: '100%',
-    height: 220,
-    borderRadius: TV.radius.lg,
-    overflow: 'hidden',
-    backgroundColor: TV.color.surfaceAlt,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  resumeCover: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  resumeGradient: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  resumeInfo: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    padding: TV.space.xl,
-  },
-  resumeVideoTitle: {
-    fontSize: TV.font.heading,
-    fontWeight: 'bold',
-    color: TV.color.white,
-    marginBottom: TV.space.sm,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  resumeMetaWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: TV.space.xs,
-  },
-  resumeAuthor: {
-    fontSize: TV.font.xl,
-    color: TV.color.textSecondary,
   },
 });

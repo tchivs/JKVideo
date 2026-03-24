@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -70,13 +70,28 @@ export default function TVSettingsScreen() {
     sponsorBlockEnabled, setSponsorBlockEnabled,
     sponsorBlockCategories, setSponsorBlockCategories,
     blockedKeywords, setBlockedKeywords,
-    blockedUps, setBlockedUps,
     dmBlockKeywords, setDmBlockKeywords,
   } = useSettingsStore();
 
   const { clearHistory } = useHistoryStore();
   const { currentVersion, isChecking, downloadProgress, checkUpdate } = useCheckUpdate();
   const [showLogin, setShowLogin] = useState(false);
+  const blockedKeywordChips = useMemo(() => {
+    const seen = new Map<string, number>();
+    return blockedKeywords.map(kw => {
+      const count = (seen.get(kw) ?? 0) + 1;
+      seen.set(kw, count);
+      return { kw, key: `${kw}-${count}` };
+    });
+  }, [blockedKeywords]);
+  const dmBlockedKeywordChips = useMemo(() => {
+    const seen = new Map<string, number>();
+    return dmBlockKeywords.map(kw => {
+      const count = (seen.get(kw) ?? 0) + 1;
+      seen.set(kw, count);
+      return { kw, key: `${kw}-${count}` };
+    });
+  }, [dmBlockKeywords]);
 
   const clearCache = useCallback(() => {
     // 假设有 Image.clearMemoryCache，或回退通知
@@ -131,7 +146,7 @@ export default function TVSettingsScreen() {
                 <ActivityIndicator
                   color={TV.color.accent}
                 />
-                <Text style={styles.optionBtnText}>检查中...</Text>
+                <Text style={styles.optionBtnText}>检查中…</Text>
               </>
             ) : downloadProgress !== null ? (
               <Text style={styles.optionBtnText}>
@@ -497,11 +512,15 @@ export default function TVSettingsScreen() {
           </View>
           {blockedKeywords.length > 0 && (
             <View style={[styles.optionRow, { flexWrap: 'wrap', gap: TV.space.sm, marginBottom: TV.space.md }]}>
-              {blockedKeywords.map((kw, i) => (
+              {blockedKeywordChips.map(({ kw, key }) => (
                 <TVFocusable
-                  key={kw + i}
+                  key={key}
                   style={[styles.option, styles.optionActive]}
-                  onPress={() => setBlockedKeywords(blockedKeywords.filter((_, j) => j !== i))}
+                  onPress={() => {
+                    const idx = blockedKeywords.indexOf(kw);
+                    if (idx < 0) return;
+                    setBlockedKeywords(blockedKeywords.filter((_, j) => j !== idx));
+                  }}
                   scaleFactor={1}
                 >
                   <Text style={[styles.optionText, styles.optionTextActive]}>✕ {kw}</Text>
@@ -525,11 +544,15 @@ export default function TVSettingsScreen() {
           </View>
           {dmBlockKeywords.length > 0 && (
             <View style={[styles.optionRow, { flexWrap: 'wrap', gap: TV.space.sm, marginBottom: TV.space.md }]}>
-              {dmBlockKeywords.map((kw, i) => (
+              {dmBlockedKeywordChips.map(({ kw, key }) => (
                 <TVFocusable
-                  key={kw + i}
+                  key={key}
                   style={[styles.option, styles.optionActive]}
-                  onPress={() => setDmBlockKeywords(dmBlockKeywords.filter((_, j) => j !== i))}
+                  onPress={() => {
+                    const idx = dmBlockKeywords.indexOf(kw);
+                    if (idx < 0) return;
+                    setDmBlockKeywords(dmBlockKeywords.filter((_, j) => j !== idx));
+                  }}
                   scaleFactor={1}
                 >
                   <Text style={[styles.optionText, styles.optionTextActive]}>✕ {kw}</Text>

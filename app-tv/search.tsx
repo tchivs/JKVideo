@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useEffect, useState } from 'react';
+import React, { useRef, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -6,14 +6,12 @@ import {
   TextInput,
   FlatList,
   ScrollView,
-  ActivityIndicator,
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TVVideoCard } from '../components/tv/TVVideoCard';
 import { TVFocusable } from '../components/tv/TVFocusable';
-import { TVFadeIn } from '../components/tv/TVFadeIn';
 import { TVEmptyState } from '../components/tv/TVEmptyState';
 import { TVLoading } from '../components/tv/TVLoading';
 import { TVButton } from '../components/tv/TVButton';
@@ -68,6 +66,26 @@ export default function TVSearchScreen() {
 
   const showHistory = results.length === 0 && !loading && searchHistory.length > 0;
   const showTrending = results.length === 0 && !loading && trending.length > 0;
+  const historyChips = useMemo(() => {
+    const seen = new Map<string, number>();
+    return searchHistory.map(kw => {
+      const count = (seen.get(kw) ?? 0) + 1;
+      seen.set(kw, count);
+      return { kw, key: `${kw}-${count}` };
+    });
+  }, [searchHistory]);
+  const trendingChips = useMemo(() => {
+    const seen = new Map<string, number>();
+    return trending
+      .map(item => ({ kw: item.show_name || item.keyword, icon: item.icon }))
+      .filter(item => Boolean(item.kw))
+      .map(item => {
+        const kw = item.kw as string;
+        const count = (seen.get(kw) ?? 0) + 1;
+        seen.set(kw, count);
+        return { kw, icon: item.icon, key: `trending-${kw}-${count}` };
+      });
+  }, [trending]);
 
   return (
     <View style={styles.container}>
@@ -86,7 +104,7 @@ export default function TVSearchScreen() {
           <TextInput
             ref={inputRef}
             style={styles.input}
-            placeholder="搜索视频、UP主..."
+            placeholder="搜索视频、UP主…"
             placeholderTextColor={TV.color.textTertiary}
             value={keyword}
             onChangeText={setKeyword}
@@ -94,6 +112,8 @@ export default function TVSearchScreen() {
             returnKeyType="search"
             autoCapitalize="none"
             autoCorrect={false}
+            spellCheck={false}
+            autoComplete="off"
           />
         </View>
 
@@ -127,9 +147,9 @@ export default function TVSearchScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.historyList}
           >
-            {searchHistory.map((kw, i) => (
+            {historyChips.map(({ kw, key }) => (
               <TVFocusable
-                key={`${kw}-${i}`}
+                key={key}
                 style={styles.historyChip}
                 onPress={() => {
                   setKeyword(kw);
@@ -151,13 +171,10 @@ export default function TVSearchScreen() {
             <Text style={styles.historyTitle}>B站热搜榜</Text>
           </View>
           <View style={styles.trendingGrid}>
-            {trending.map((item, i) => {
-              const kw = item.show_name || item.keyword;
-              // 过滤掉过于奇怪或非视频方向的搜索词（可选保障）
-              if (!kw) return null;
+            {trendingChips.map(({ kw, key, icon }, i) => {
               return (
                 <TVFocusable
-                  key={`trending-${kw}-${i}`}
+                  key={key}
                   style={[styles.trendingChip, { width: '31%' }]}
                   onPress={() => {
                     setKeyword(kw);
@@ -169,7 +186,7 @@ export default function TVSearchScreen() {
                   <Text style={styles.trendingChipText} numberOfLines={1}>
                     {kw}
                   </Text>
-                  {item.icon && (
+                  {icon && (
                     <Text style={styles.trendingHotIcon}>热</Text>
                   )}
                 </TVFocusable>
@@ -250,7 +267,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: TV.space.sm,
   },
-  headerTitle: { fontSize: TV.font.heading, fontWeight: '800', color: TV.color.white },
   historyTitle: { fontSize: TV.font.base, color: TV.color.textTertiary },
   historyList: { gap: TV.space.sm },
   historyChip: {

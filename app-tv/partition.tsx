@@ -5,7 +5,6 @@ import {
   FlatList,
   StyleSheet,
   ActivityIndicator,
-  useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { TVFocusable } from '../components/tv/TVFocusable';
@@ -23,7 +22,6 @@ const SIDEBAR_W = 140;
 export default function PartitionScreen() {
   const router = useRouter();
   const { setPlaylist } = usePlaylistStore();
-  const { width: screenW } = useWindowDimensions();
   const [selectedTid, setSelectedTid] = useState(BILI_REGIONS[0].tid);
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +38,8 @@ export default function PartitionScreen() {
         setVideos(prev => [...prev, ...items]);
       }
       setHasMore(items.length >= 20);
-    } catch {
+    } catch (e) {
+      console.warn('load partition videos failed', e);
       if (reset) setVideos([]);
     } finally {
       setLoading(false);
@@ -69,7 +68,7 @@ export default function PartitionScreen() {
           const res = await getRegionVideos(selectedTid, nextPn, 20);
           return { items: res, hasMore: res.length >= 20 };
         });
-        router.push(`/video/${item.bvid}`);
+        router.push(`/video/${item.bvid}` as any);
       }}
     />
   ), [router, videos, hasMore, selectedTid, setPlaylist]);

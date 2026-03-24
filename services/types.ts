@@ -167,3 +167,14 @@ export interface LiveStreamInfo {
   qn: number;
   qualities: { qn: number; desc: string }[];
 }
+
+export interface UserSpaceInfo {
+  mid: number;
+  name: string;
+  face: string;
+  sign: string;
+  stat?: {
+    follower?: number;
+    pub_vdo?: number;
+  };
+}

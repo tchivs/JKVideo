@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, Image, FlatList, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,7 +10,7 @@ import { getUserSpaceInfo, getUserSpaceVideos } from '../../services/bilibili';
 import { usePlaylistStore } from '../../store/playlistStore';
 import { proxyImageUrl } from '../../utils/imageUrl';
 import { formatCount } from '../../utils/format';
-import type { VideoItem } from '../../services/types';
+import type { UserSpaceInfo, VideoItem } from '../../services/types';
 import { TV } from '../../constants/tvTheme';
 
 export default function TVSpaceScreen() {
@@ -18,12 +18,39 @@ export default function TVSpaceScreen() {
   const router = useRouter();
   const { setPlaylist } = usePlaylistStore();
 
-  const [info, setInfo] = useState<any>(null);
+  const [info, setInfo] = useState<UserSpaceInfo | null>(null);
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [loadingTop, setLoadingTop] = useState(true);
   const [loadingList, setLoadingList] = useState(false);
   const [pn, setPn] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const loadingListRef = useRef(false);
+  const pnRef = useRef(1);
+
+  useEffect(() => {
+    loadingListRef.current = loadingList;
+  }, [loadingList]);
+  useEffect(() => {
+    pnRef.current = pn;
+  }, [pn]);
+
+  const loadVideos = useCallback(async (page: number, isRefresh = false) => {
+    if (!mid || loadingListRef.current) return;
+    loadingListRef.current = true;
+    setLoadingList(true);
+    try {
+      const res = await getUserSpaceVideos(mid, page, 20);
+      setVideos(prev => isRefresh ? res.items : [...prev, ...res.items]);
+      setHasMore(res.hasMore);
+      setPn(page + 1);
+      pnRef.current = page + 1;
+    } catch (e) {
+      console.warn(e);
+    } finally {
+      loadingListRef.current = false;
+      setLoadingList(false);
+    }
+  }, [mid]);
 
   // 初始化获取 UP主信息与第一页视频
   useEffect(() => {
@@ -35,22 +62,7 @@ export default function TVSpaceScreen() {
     });
     // fetch first page
     loadVideos(1, true);
-  }, [mid]);
-
-  const loadVideos = useCallback(async (page: number, isRefresh = false) => {
-    if (loadingList) return;
-    setLoadingList(true);
-    try {
-      const res = await getUserSpaceVideos(mid, page, 20);
-      setVideos(prev => isRefresh ? res.items : [...prev, ...res.items]);
-      setHasMore(res.hasMore);
-      setPn(page + 1);
-    } catch (e) {
-      console.warn(e);
-    } finally {
-      setLoadingList(false);
-    }
-  }, [loadingList, mid]);
+  }, [mid, loadVideos]);
 
   const renderItem = useCallback(({ item, index }: { item: VideoItem; index: number }) => (
     <TVVideoCard
@@ -62,7 +74,7 @@ export default function TVSpaceScreen() {
           const res = await getUserSpaceVideos(mid, nextPn, 20);
           return res;
         });
-        router.push(`/video/${item.bvid}`);
+        router.push(`/video/${item.bvid}` as any);
       }}
     />
   ), [router, videos, hasMore, mid, setPlaylist]);
@@ -73,6 +85,7 @@ export default function TVSpaceScreen() {
         style={styles.backBtn}
         onPress={() => router.back()}
         scaleFactor={1.1}
+        accessibilityLabel="返回"
       >
         <Ionicons name="arrow-back" size={32} color={TV.color.textPrimary} />
       </TVFocusable>
@@ -85,8 +98,8 @@ export default function TVSpaceScreen() {
           <View style={styles.profileInfo}>
             <Text style={styles.name}>{info.name}</Text>
             <View style={styles.statsRow}>
-              <Text style={styles.statText}>粉丝 {formatCount(info.stat?.follower)}</Text>
-              <Text style={styles.statText}>投稿 {formatCount(info.stat?.pub_vdo)}</Text>
+              <Text style={styles.statText}>粉丝 {formatCount(info.stat?.follower ?? 0)}</Text>
+              <Text style={styles.statText}>投稿 {formatCount(info.stat?.pub_vdo ?? 0)}</Text>
             </View>
             <Text style={styles.sign} numberOfLines={1}>{info.sign}</Text>
           </View>
@@ -104,22 +117,22 @@ export default function TVSpaceScreen() {
       ) : (
         <FlatList
           data={videos}
-          keyExtractor={(item) => item.bvid || String(Math.random())}
+          keyExtractor={(item, index) => item.bvid || `space-video-${index}`}
           numColumns={5}
           contentContainerStyle={styles.listContent}
           columnWrapperStyle={styles.gridRow}
           showsVerticalScrollIndicator={false}
           renderItem={renderItem}
           onEndReached={() => {
-            if (hasMore && !loadingList) loadVideos(pn);
+            if (hasMore && !loadingListRef.current) loadVideos(pnRef.current);
           }}
           onEndReachedThreshold={0.5}
           ListFooterComponent={
             hasMore ? (
               <TVFocusable
                 style={styles.loadMoreBtn}
-                onPress={() => loadVideos(pn)}
-                onFocus={() => loadVideos(pn)}
+                onPress={() => loadVideos(pnRef.current)}
+                onFocus={() => loadVideos(pnRef.current)}
                 scaleFactor={1.05}
               >
                 {loadingList ? <TVLoading /> : <Text style={styles.loadMoreText}>加载下一页</Text>}

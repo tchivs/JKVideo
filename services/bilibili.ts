@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import pako from 'pako';
-import type { VideoItem, Comment, PlayUrlResponse, QRCodeInfo, VideoShotData, DanmakuItem, LiveRoom, LiveRoomDetail, LiveAnchorInfo, LiveStreamInfo } from './types';
+import type { VideoItem, Comment, PlayUrlResponse, QRCodeInfo, VideoShotData, DanmakuItem, LiveRoom, LiveRoomDetail, LiveAnchorInfo, LiveStreamInfo, UserSpaceInfo } from './types';
 import { signWbi } from '../utils/wbi';
 import { parseDanmakuXml } from '../utils/danmaku';
 import { useSettingsStore } from '../store/settingsStore';
@@ -400,7 +400,6 @@ export async function getLiveDanmakuHistory(roomId: number): Promise<{
   const room: any[] = res.data?.data?.room ?? [];
   const admin: any[] = res.data?.data?.admin ?? [];
   const adminMsgs = admin.map((a: any) => a.text ?? '').filter(Boolean);
-  console.log(adminMsgs,'adminMsgs')
   const danmakus = room.map((m: any) => ({
     time: 0,
     mode: 1 as const,
@@ -709,7 +708,7 @@ export async function likeVideo(bvid: string, action: 1 | 2): Promise<boolean> {
 /**
  * 获取 UP 主的基础信息 (空间个人简介)
  */
-export async function getUserSpaceInfo(mid: string): Promise<any> {
+export async function getUserSpaceInfo(mid: string): Promise<UserSpaceInfo | null> {
   try {
     const { imgKey, subKey } = await getWbiKeys();
     const signed = signWbi({ mid }, imgKey, subKey);
@@ -737,13 +736,25 @@ export async function getUserSpaceVideos(mid: string, pn = 1, ps = 20): Promise<
     const vlist = data?.list?.vlist || [];
     
     const items: VideoItem[] = vlist.map((v: any) => ({
-      bvid: v.bvid,
-      title: v.title,
-      cover: v.pic,
-      author: v.author,
-      view: v.play,
-      danmaku: v.video_review,
-      duration: v.length, // duration maybe 'MM:SS' format here, so video card parser must handle it
+      bvid: v.bvid ?? '',
+      aid: Number(v.aid ?? 0),
+      title: v.title ?? '',
+      pic: v.pic ?? '',
+      owner: {
+        mid: Number(v.mid ?? 0),
+        name: v.author ?? '',
+        face: '',
+      },
+      stat: {
+        view: Number(v.play ?? 0),
+        danmaku: Number(v.video_review ?? 0),
+        reply: 0,
+        like: 0,
+        coin: 0,
+        favorite: 0,
+      },
+      duration: typeof v.length === 'string' ? parseDurationText(v.length) : Number(v.length ?? 0),
+      desc: v.description ?? '',
     }));
     
     // page info

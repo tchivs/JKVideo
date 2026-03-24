@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,9 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TVLivePlayer } from '../../components/tv/TVLivePlayer';
-import { TVFocusable } from '../../components/tv/TVFocusable';
 import { useLiveDetail } from '../../hooks/useLiveDetail';
 import { useLiveDanmaku } from '../../hooks/useLiveDanmaku';
 import { formatCount } from '../../utils/format';
@@ -22,7 +21,6 @@ import { proxyImageUrl } from '../../utils/imageUrl';
  */
 export default function TVLiveDetailScreen() {
   const { roomId } = useLocalSearchParams<{ roomId: string }>();
-  const router = useRouter();
   const id = parseInt(roomId ?? '0', 10);
   const { room, anchor, stream, loading, error, changeQuality } =
     useLiveDetail(id);
@@ -34,16 +32,9 @@ export default function TVLiveDetailScreen() {
 
   // 实际 roomid（可能和 URL 中的短 ID 不同）
   const actualRoomId = room?.roomid ?? id;
-  const { danmakus, giftCounts } = useLiveDanmaku(isLive ? actualRoomId : 0);
-  const [showInfo, setShowInfo] = useState(true);
+  const { danmakus } = useLiveDanmaku(isLive ? actualRoomId : 0);
+  const showInfo = true;
   const danmakuScrollRef = useRef<ScrollView>(null);
-
-  // M-8: 弹幕自动滚动到底部
-  useEffect(() => {
-    if (danmakuScrollRef.current) {
-      danmakuScrollRef.current.scrollToEnd({ animated: true });
-    }
-  }, [danmakus.length]);
 
   if (loading) {
     return (
@@ -127,9 +118,13 @@ export default function TVLiveDetailScreen() {
               <Text style={styles.danmakuTitle}>
                 弹幕 ({danmakus.length})
               </Text>
-              <ScrollView ref={danmakuScrollRef} style={styles.danmakuList}>
+              <ScrollView
+                ref={danmakuScrollRef}
+                style={styles.danmakuList}
+                onContentSizeChange={() => danmakuScrollRef.current?.scrollToEnd({ animated: true })}
+              >
                 {danmakus.slice(-30).map((d, i) => (
-                  <Text key={i} style={styles.danmakuItem} numberOfLines={1}>
+                  <Text key={`${d.timeline ?? ''}-${d.uname ?? ''}-${d.text}-${i}`} style={styles.danmakuItem} numberOfLines={1}>
                     <Text style={styles.danmakuUser}>{d.uname}: </Text>
                     {d.text}
                   </Text>

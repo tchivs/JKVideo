@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   FlatList,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,28 +26,45 @@ export default function TVFollowingScreen() {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [pn, setPn] = useState(1);
+  const loadingRef = useRef(false);
+  const hasMoreRef = useRef(true);
+  const pnRef = useRef(1);
+
+  useEffect(() => {
+    loadingRef.current = loading;
+  }, [loading]);
+  useEffect(() => {
+    hasMoreRef.current = hasMore;
+  }, [hasMore]);
+  useEffect(() => {
+    pnRef.current = pn;
+  }, [pn]);
 
   const loadData = useCallback(async (isRefresh = false) => {
-    if (!isLoggedIn || loading || (!hasMore && !isRefresh)) return;
+    if (!isLoggedIn || loadingRef.current || (!hasMoreRef.current && !isRefresh)) return;
+    const targetPn = isRefresh ? 1 : pnRef.current;
+    loadingRef.current = true;
     setLoading(true);
     try {
-      const targetPn = isRefresh ? 1 : pn;
       const res = await getBangumiFollows(targetPn, 20);
       if (res.items.length > 0) {
         setItems(prev => isRefresh ? res.items : [...prev, ...res.items]);
         setPn(targetPn + 1);
+        pnRef.current = targetPn + 1;
       }
       setHasMore(res.hasMore);
+      hasMoreRef.current = res.hasMore;
     } catch (e) {
       console.warn(e);
     } finally {
+      loadingRef.current = false;
       setLoading(false);
     }
-  }, [loading, hasMore, pn, isLoggedIn]);
+  }, [isLoggedIn]);
 
   useEffect(() => {
     if (isLoggedIn) loadData(true);
-  }, [isLoggedIn]);
+  }, [isLoggedIn, loadData]);
 
   const renderItem = ({ item, index }: { item: VideoItem; index: number }) => (
     <TVVideoCard

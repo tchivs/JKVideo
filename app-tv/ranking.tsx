@@ -5,14 +5,12 @@ import {
   FlatList,
   StyleSheet,
   ActivityIndicator,
-  useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TVVideoCard } from '../components/tv/TVVideoCard';
 import { TVFocusable } from '../components/tv/TVFocusable';
 import { TVSkeleton } from '../components/tv/TVSkeleton';
-import { TVFadeIn } from '../components/tv/TVFadeIn';
 import { getPopularVideos } from '../services/bilibili';
 import type { VideoItem } from '../services/types';
 import { TV } from '../constants/tvTheme';
@@ -75,7 +73,7 @@ export default function TVRankingScreen() {
 
   useEffect(() => {
     fetchVideos(1, true);
-  }, []);
+  }, [fetchVideos]);
 
   const handleCategory = useCallback(
     (id: number) => {
@@ -144,7 +142,7 @@ export default function TVRankingScreen() {
       {loading ? (
         <TVSkeleton />
       ) : error ? (
-        <TVFadeIn style={styles.errorBox}>
+        <View style={styles.errorBox}>
           <Ionicons name="cloud-offline-outline" size={48} color={TV.color.textTertiary} />
           <Text style={styles.errorText}>{error}</Text>
           <TVFocusable
@@ -155,7 +153,7 @@ export default function TVRankingScreen() {
           >
             <Text style={styles.retryText}>重试</Text>
           </TVFocusable>
-        </TVFadeIn>
+        </View>
       ) : (
         <FlatList
           data={videos}
