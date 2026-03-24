@@ -283,6 +283,8 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
     const currentDesc =
       qualities.find(q => q.qn === currentQn)?.desc ??
       String(currentQn || 'HD');
+    const hasCurrentQualitySelection = qualities.some(q => q.qn === currentQn);
+    const hasCurrentSpeedSelection = [0.5, 0.75, 1, 1.25, 1.5, 2].includes(speed);
 
     // 解析播放链接
     useEffect(() => {
@@ -704,6 +706,7 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
                   setShowQuality(false);
                   showAndReset();
                 }}
+                hasTVPreferredFocus={!hasCurrentQualitySelection}
                 scaleFactor={1}
                 accessibilityLabel="取消清晰度面板"
               >
@@ -750,6 +753,7 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
                   setShowSpeed(false);
                   showAndReset();
                 }}
+                hasTVPreferredFocus={!hasCurrentSpeedSelection}
                 scaleFactor={1}
                 accessibilityLabel="取消倍速面板"
               >

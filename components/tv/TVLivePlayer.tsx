@@ -108,6 +108,13 @@ function NativeTVLivePlayer({
   }, [resetHideTimer]);
 
   const currentQnDesc = qualities.find(q => q.qn === currentQn)?.desc ?? '';
+  const hasCurrentQuality = qualities.some(q => q.qn === currentQn);
+
+  const closeQualityPanel = useCallback(() => {
+    setShowQualityPanel(false);
+    setShowControls(true);
+    resetHideTimer();
+  }, [resetHideTimer]);
 
   return (
     <View style={[styles.container, { width: screenW, height: screenH }]}>
@@ -219,7 +226,7 @@ function NativeTVLivePlayer({
                 ]}
                 onPress={() => {
                   onQualityChange?.(q.qn);
-                  setShowQualityPanel(false);
+                  closeQualityPanel();
                 }}
                 hasTVPreferredFocus={currentQn === q.qn}
                 scaleFactor={1}
@@ -240,10 +247,8 @@ function NativeTVLivePlayer({
             ))}
             <TVFocusable
               style={[styles.panelCancelBtn, { paddingHorizontal: tv.space.lg - 4, paddingVertical: tv.space.sm, borderRadius: tv.radius.sm, marginTop: tv.space.sm }]}
-              onPress={() => {
-                setShowQualityPanel(false);
-                resetHideTimer();
-              }}
+              onPress={closeQualityPanel}
+              hasTVPreferredFocus={!hasCurrentQuality}
               scaleFactor={1}
               accessibilityLabel="取消清晰度面板"
             >

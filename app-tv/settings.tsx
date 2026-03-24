@@ -121,15 +121,14 @@ export default function TVSettingsScreen() {
       '清理缓存',
       '确认清理图片及请求缓存吗？此操作不会影响账号登录状态。',
       () => {
-        // 假设有 Image.clearMemoryCache，或回退通知
-        showFeedback('图片及数据缓存已清除');
+        Alert.alert('暂不支持', '当前版本暂未提供统一缓存清理能力。');
       },
     );
-  }, [confirmAction, showFeedback]);
+  }, [confirmAction]);
 
   const handleClearHistory = useCallback(() => {
-    confirmAction('清空历史', '确认清空本地播放历史吗？该操作无法撤销。', () => {
-      clearHistory();
+    confirmAction('清空历史', '确认清空本地播放历史吗？该操作无法撤销。', async () => {
+      await clearHistory();
       showFeedback('本地播放历史已清空');
     });
   }, [clearHistory, confirmAction, showFeedback]);
