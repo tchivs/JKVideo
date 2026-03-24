@@ -16,7 +16,26 @@ interface DanmakuSettings {
   dmEnabled: boolean;
 }
 
-interface SettingsState extends DanmakuSettings {
+export type PreferredCodec = 'auto' | 'avc' | 'hevc' | 'av1';
+
+export interface ExtendedSettings {
+  preferredCodec: PreferredCodec;
+  autoPlayNext: boolean;
+  ffPreview: boolean;
+  startupAnim: boolean;
+  miniProgressBar: boolean;
+  autoHideControls: boolean;
+  showPlayerTime: boolean;
+  partitionOrder: number[];
+  downKeyAction: 'controls' | 'nextVideo';
+  nextVideoSource: 'uploader' | 'recommend';
+}
+
+interface PersistedSettings extends DanmakuSettings, ExtendedSettings {
+  defaultQn: number;
+}
+
+interface SettingsState extends DanmakuSettings, ExtendedSettings {
   coverQuality: 'hd' | 'normal';
   /** 默认播放清晰度 (qn) */
   defaultQn: number;
@@ -28,11 +47,23 @@ interface SettingsState extends DanmakuSettings {
   setDmAreaRatio: (v: number) => Promise<void>;
   setDmFilterModes: (modes: number[]) => Promise<void>;
   setDmEnabled: (v: boolean) => Promise<void>;
+  
+  setPreferredCodec: (v: PreferredCodec) => Promise<void>;
+  setAutoPlayNext: (v: boolean) => Promise<void>;
+  setFfPreview: (v: boolean) => Promise<void>;
+  setStartupAnim: (v: boolean) => Promise<void>;
+  setMiniProgressBar: (v: boolean) => Promise<void>;
+  setAutoHideControls: (v: boolean) => Promise<void>;
+  setShowPlayerTime: (v: boolean) => Promise<void>;
+  setPartitionOrder: (v: number[]) => Promise<void>;
+  setDownKeyAction: (v: 'controls' | 'nextVideo') => Promise<void>;
+  setNextVideoSource: (v: 'uploader' | 'recommend') => Promise<void>;
+
   restore: () => Promise<void>;
 }
 
 /** 持久化当前 TV 设置到 AsyncStorage */
-async function persistTvSettings(partial: Partial<DanmakuSettings & { defaultQn: number }>): Promise<void> {
+async function persistTvSettings(partial: Partial<PersistedSettings>): Promise<void> {
   try {
     const raw = await AsyncStorage.getItem(TV_SETTINGS_KEY);
     const prev = raw ? JSON.parse(raw) : {};
@@ -50,6 +81,16 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   dmAreaRatio: 1,
   dmFilterModes: [],
   dmEnabled: true,
+  preferredCodec: 'auto',
+  autoPlayNext: false,
+  ffPreview: true,
+  startupAnim: true,
+  miniProgressBar: true,
+  autoHideControls: true,
+  showPlayerTime: true,
+  partitionOrder: [],
+  downKeyAction: 'controls',
+  nextVideoSource: 'uploader',
 
   setCoverQuality: async (q) => {
     try { await AsyncStorage.setItem('COVER_QUALITY', q); } catch { /* noop */ }
@@ -86,6 +127,17 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     set({ dmEnabled: v });
   },
 
+  setPreferredCodec: async (v) => { await persistTvSettings({ preferredCodec: v }); set({ preferredCodec: v }); },
+  setAutoPlayNext: async (v) => { await persistTvSettings({ autoPlayNext: v }); set({ autoPlayNext: v }); },
+  setFfPreview: async (v) => { await persistTvSettings({ ffPreview: v }); set({ ffPreview: v }); },
+  setStartupAnim: async (v) => { await persistTvSettings({ startupAnim: v }); set({ startupAnim: v }); },
+  setMiniProgressBar: async (v) => { await persistTvSettings({ miniProgressBar: v }); set({ miniProgressBar: v }); },
+  setAutoHideControls: async (v) => { await persistTvSettings({ autoHideControls: v }); set({ autoHideControls: v }); },
+  setShowPlayerTime: async (v) => { await persistTvSettings({ showPlayerTime: v }); set({ showPlayerTime: v }); },
+  setPartitionOrder: async (v) => { await persistTvSettings({ partitionOrder: v }); set({ partitionOrder: v }); },
+  setDownKeyAction: async (v) => { await persistTvSettings({ downKeyAction: v }); set({ downKeyAction: v }); },
+  setNextVideoSource: async (v) => { await persistTvSettings({ nextVideoSource: v }); set({ nextVideoSource: v }); },
+
   restore: async () => {
     try {
       const q = await AsyncStorage.getItem('COVER_QUALITY');
@@ -103,6 +155,16 @@ export const useSettingsStore = create<SettingsState>((set) => ({
           ...(typeof s.dmAreaRatio === 'number' && { dmAreaRatio: s.dmAreaRatio }),
           ...(Array.isArray(s.dmFilterModes) && { dmFilterModes: s.dmFilterModes }),
           ...(typeof s.dmEnabled === 'boolean' && { dmEnabled: s.dmEnabled }),
+          ...(typeof s.preferredCodec === 'string' && { preferredCodec: s.preferredCodec }),
+          ...(typeof s.autoPlayNext === 'boolean' && { autoPlayNext: s.autoPlayNext }),
+          ...(typeof s.ffPreview === 'boolean' && { ffPreview: s.ffPreview }),
+          ...(typeof s.startupAnim === 'boolean' && { startupAnim: s.startupAnim }),
+          ...(typeof s.miniProgressBar === 'boolean' && { miniProgressBar: s.miniProgressBar }),
+          ...(typeof s.autoHideControls === 'boolean' && { autoHideControls: s.autoHideControls }),
+          ...(typeof s.showPlayerTime === 'boolean' && { showPlayerTime: s.showPlayerTime }),
+          ...(Array.isArray(s.partitionOrder) && { partitionOrder: s.partitionOrder }),
+          ...(typeof s.downKeyAction === 'string' && { downKeyAction: s.downKeyAction as any }),
+          ...(typeof s.nextVideoSource === 'string' && { nextVideoSource: s.nextVideoSource as any }),
         });
       }
     } catch { /* noop */ }
