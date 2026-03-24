@@ -137,11 +137,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: TV.color.bg,
+    backgroundColor: 'transparent',
+    paddingTop: TV.layout.headerPaddingV + TV.space.xl,
   },
   sidebar: {
     width: SIDEBAR_W,
-    backgroundColor: TV.color.surface,
+    backgroundColor: 'transparent',
     paddingTop: TV.space.xl,
     paddingHorizontal: TV.space.sm,
   },

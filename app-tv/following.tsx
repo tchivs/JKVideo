@@ -136,9 +136,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: TV.layout.contentPaddingH,
     paddingVertical: TV.layout.headerPaddingV,
-    backgroundColor: TV.color.surfaceAlt,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: TV.color.border,
+    backgroundColor: 'transparent',
+    paddingTop: TV.layout.headerPaddingV + TV.space.xl,
     gap: TV.space.md - 2,
   },
   backBtn: {
@@ -147,7 +146,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  headerTitle: { fontSize: TV.font.title, fontWeight: '600', color: TV.color.textPrimary },
+  headerTitle: { fontSize: TV.font.heading, fontWeight: '800', color: TV.color.white },
   listContent: { padding: TV.layout.listPadding },
   gridRow: { gap: TV.layout.gridGap },
   loadMoreBtn: {

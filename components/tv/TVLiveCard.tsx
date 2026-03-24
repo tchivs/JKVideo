@@ -18,6 +18,8 @@ interface Props {
   item: LiveRoom;
   onPress?: () => void;
   sidebarWidth?: number;
+  onFocusChange?: (focused: boolean) => void;
+  cardWidth?: number;
 }
 
 /**
@@ -27,16 +29,21 @@ export const TVLiveCard = React.memo(function TVLiveCard({
   item,
   onPress,
   sidebarWidth = 0,
+  onFocusChange,
+  cardWidth: propCardWidth,
 }: Props) {
   const { width } = useWindowDimensions();
   const NUM_COLUMNS = 5;
-  const CARD_WIDTH =
+  const FULL_CARD_WIDTH =
     (width - sidebarWidth - TV.layout.listPadding * 2 - TV.layout.gridGap * (NUM_COLUMNS - 1)) /
     NUM_COLUMNS;
+  const CARD_WIDTH = propCardWidth ?? FULL_CARD_WIDTH;
 
   return (
     <TVFocusable
       onPress={onPress}
+      onFocus={() => onFocusChange?.(true)}
+      onBlur={() => onFocusChange?.(false)}
       style={[styles.card, { width: CARD_WIDTH }]}
       focusStyle={{ borderRadius: TV.radius.md }}
       accessibilityLabel={`${item.uname} \u76f4\u64ad\u4e2d: ${item.title}`}

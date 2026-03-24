@@ -215,9 +215,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: TV.layout.contentPaddingH,
     paddingVertical: TV.layout.headerPaddingV,
-    backgroundColor: TV.color.surfaceAlt,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: TV.color.border,
+    backgroundColor: 'transparent',
+    paddingTop: TV.layout.headerPaddingV + TV.space.xl,
     gap: TV.space.md - 2,
   },
   backBtn: {
@@ -251,6 +250,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: TV.space.sm,
   },
+  headerTitle: { fontSize: TV.font.heading, fontWeight: '800', color: TV.color.white },
   historyTitle: { fontSize: TV.font.base, color: TV.color.textTertiary },
   historyList: { gap: TV.space.sm },
   historyChip: {

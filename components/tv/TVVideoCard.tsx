@@ -19,6 +19,8 @@ interface Props {
   item: VideoItem;
   onPress: () => void;
   sidebarWidth?: number;
+  onFocusChange?: (focused: boolean) => void;
+  cardWidth?: number;
 }
 
 /**
@@ -29,12 +31,15 @@ export const TVVideoCard = React.memo(function TVVideoCard({
   item,
   onPress,
   sidebarWidth = 0,
+  onFocusChange,
+  cardWidth: propCardWidth,
 }: Props) {
   const { width } = useWindowDimensions();
   const NUM_COLUMNS = 5;
-  const CARD_WIDTH =
+  const FULL_CARD_WIDTH =
     (width - sidebarWidth - TV.layout.listPadding * 2 - TV.layout.gridGap * (NUM_COLUMNS - 1)) /
     NUM_COLUMNS;
+  const CARD_WIDTH = propCardWidth ?? FULL_CARD_WIDTH;
 
   const coverQuality = useSettingsStore(s => s.coverQuality);
 
@@ -44,12 +49,14 @@ export const TVVideoCard = React.memo(function TVVideoCard({
   const handleFocus = useCallback(() => {
     if (hoverTimer.current) clearTimeout(hoverTimer.current);
     hoverTimer.current = setTimeout(() => setIsHovered(true), 600);
-  }, []);
+    onFocusChange?.(true);
+  }, [onFocusChange]);
 
   const handleBlur = useCallback(() => {
     setIsHovered(false);
     if (hoverTimer.current) clearTimeout(hoverTimer.current);
-  }, []);
+    onFocusChange?.(false);
+  }, [onFocusChange]);
 
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   useEffect(() => {
