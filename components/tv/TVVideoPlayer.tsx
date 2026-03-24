@@ -3,6 +3,7 @@ import React, {
   useRef,
   useEffect,
   useCallback,
+  useMemo,
   forwardRef,
   useImperativeHandle,
 } from 'react';
@@ -12,6 +13,7 @@ import {
   Text,
   useWindowDimensions,
   Platform,
+  ScrollView,
 } from 'react-native';
 import Video, { VideoRef } from 'react-native-video';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,6 +24,7 @@ import { formatDuration } from '../../utils/format';
 import DanmakuOverlay from '../DanmakuOverlay';
 import { TVFocusable } from './TVFocusable';
 import { useSettingsStore } from '../../store/settingsStore';
+import { TV } from '../../constants/tvTheme';
 
 const HIDE_DELAY = 5000;
 const SEEK_STEP = 10; // 秒
@@ -41,6 +44,12 @@ export interface TVVideoPlayerRef {
   setPaused: (v: boolean) => void;
 }
 
+interface EpisodeInfo {
+  id: string;
+  title: string;
+  isCurrent?: boolean;
+}
+
 interface Props {
   playData: PlayUrlResponse | null;
   qualities: { qn: number; desc: string }[];
@@ -53,6 +62,10 @@ interface Props {
   isFullscreen?: boolean;
   onTimeUpdate?: (t: number) => void;
   initialTime?: number;
+  /** 合集/分P 集数列表，用于播放器内快速选集 */
+  episodes?: EpisodeInfo[];
+  /** 用户选择集数后回调，参数为 episode id */
+  onEpisodeChange?: (id: string) => void;
 }
 
 /**
@@ -72,6 +85,8 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
       isFullscreen,
       onTimeUpdate,
       initialTime,
+      episodes: episodesProp,
+      onEpisodeChange,
     }: Props,
     ref,
   ) {
@@ -96,6 +111,14 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
     const [speed, setSpeed] = useState(1);
     const [showSpeed, setShowSpeed] = useState(false);
     const [showDanmakuConfig, setShowDanmakuConfig] = useState(false);
+    const [showEpisodes, setShowEpisodes] = useState(false);
+    const [epReversed, setEpReversed] = useState(false);
+
+    const hasEpisodes = !!episodesProp?.length && episodesProp.length > 1;
+    const displayedEpisodes = useMemo(
+      () => (epReversed && episodesProp ? [...episodesProp].reverse() : episodesProp ?? []),
+      [episodesProp, epReversed],
+    );
 
     // 弹幕全局配置（从 settingsStore 读取 / 写回）
     const showDanmaku = useSettingsStore(s => s.dmEnabled);
@@ -108,6 +131,8 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
     const setDmAreaRatio = useSettingsStore(s => s.setDmAreaRatio);
     const dmFilterModes = useSettingsStore(s => s.dmFilterModes);
     const setDmFilterModes = useSettingsStore(s => s.setDmFilterModes);
+
+    const [error, setError] = useState<string | null>(null);
 
     const videoRef = useRef<VideoRef>(null);
 
@@ -128,10 +153,18 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
       }
       if (isDash) {
         buildDashMpdUri(playData, currentQn)
-          .then(setResolvedUrl)
-          .catch(() => setResolvedUrl(playData.dash!.video[0]?.baseUrl));
+          .then((uri) => {
+            setResolvedUrl(uri);
+            setError(null);
+          })
+          .catch(() => {
+            const fallback = playData.dash!.video[0]?.baseUrl;
+            setResolvedUrl(fallback);
+            setError(null);
+          });
       } else {
         setResolvedUrl(playData.durl?.[0]?.url);
+        setError(null);
       }
     }, [playData, currentQn]);
 
@@ -233,6 +266,7 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
                 return;
               }
               console.warn('TV Video playback error:', e);
+              setError('视频加载失败，请尝试切换清晰度');
             }}
           />
         ) : (
@@ -260,9 +294,17 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
           scaleFactor={1}
           borderColor="transparent"
           hasTVPreferredFocus
+          accessibilityLabel={error ? '播放失败' : (paused ? '播放' : '暂停')}
         >
           <View style={StyleSheet.absoluteFill} />
         </TVFocusable>
+
+        {error && (
+          <View style={styles.errorContainer} pointerEvents="none">
+            <Ionicons name="warning-outline" size={48} color={TV.color.danger} />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
 
         {showControls && (
           <>
@@ -305,7 +347,7 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
                       styles.trackLayer,
                       {
                         width: `${progressRatio * 100}%` as any,
-                        backgroundColor: '#00AEEC',
+                        backgroundColor: TV.color.accent,
                       },
                     ]}
                   />
@@ -385,6 +427,17 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
                 >
                   <Ionicons name="settings-outline" size={16} color="#fff" />
                 </TVFocusable>
+
+                {hasEpisodes && (
+                  <TVFocusable
+                    onPress={() => { setShowEpisodes(true); setPaused(true); }}
+                    style={styles.ctrlBtn}
+                    scaleFactor={1.1}
+                    accessibilityLabel="选集"
+                  >
+                    <Ionicons name="list-outline" size={18} color="#fff" />
+                  </TVFocusable>
+                )}
               </View>
             </LinearGradient>
           </>
@@ -417,7 +470,7 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
                     {q.qn === 126 ? ' DV' : ''}
                   </Text>
                   {q.qn === currentQn && (
-                    <Ionicons name="checkmark" size={18} color="#00AEEC" />
+                    <Ionicons name="checkmark" size={18} color={TV.color.accent} />
                   )}
                 </TVFocusable>
               ))}
@@ -560,6 +613,75 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
             </View>
           </View>
         )}
+
+        {/* 快速选集抽屉面板 */}
+        {showEpisodes && (
+          <View style={styles.episodeOverlay}>
+            <View style={styles.episodeDrawer}>
+              <View style={styles.episodeHeader}>
+                <Text style={styles.qualityTitle}>选集 ({episodesProp?.length})</Text>
+                <TVFocusable
+                  style={styles.epSortBtn}
+                  onPress={() => setEpReversed(r => !r)}
+                  scaleFactor={1.1}
+                >
+                  <Ionicons
+                    name="swap-vertical"
+                    size={16}
+                    color={epReversed ? TV.color.accent : '#aaa'}
+                  />
+                  <Text style={[
+                    styles.epSortText,
+                    epReversed && { color: TV.color.accent },
+                  ]}>
+                    {epReversed ? '倒序' : '正序'}
+                  </Text>
+                </TVFocusable>
+              </View>
+              <ScrollView
+                style={styles.episodeScroll}
+                showsVerticalScrollIndicator={false}
+              >
+                {displayedEpisodes.map(ep => (
+                  <TVFocusable
+                    key={ep.id}
+                    style={[
+                      styles.episodeItem,
+                      ep.isCurrent && styles.episodeItemActive,
+                    ]}
+                    onPress={() => {
+                      setShowEpisodes(false);
+                      setPaused(false);
+                      onEpisodeChange?.(ep.id);
+                    }}
+                    scaleFactor={1}
+                    hasTVPreferredFocus={ep.isCurrent}
+                  >
+                    {ep.isCurrent && (
+                      <Ionicons name="play" size={14} color={TV.color.accent} />
+                    )}
+                    <Text
+                      style={[
+                        styles.episodeItemText,
+                        ep.isCurrent && styles.episodeItemTextActive,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {ep.title}
+                    </Text>
+                  </TVFocusable>
+                ))}
+              </ScrollView>
+              <TVFocusable
+                style={styles.dmCloseBtn}
+                onPress={() => { setShowEpisodes(false); setPaused(false); }}
+                scaleFactor={1}
+              >
+                <Text style={styles.dmCloseBtnText}>关闭</Text>
+              </TVFocusable>
+            </View>
+          </View>
+        )}
       </View>
     );
   },
@@ -580,6 +702,26 @@ const styles = StyleSheet.create({
     right: 0,
     height: 60,
     zIndex: 2,
+  },
+  errorContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -100 }, { translateY: -40 }],
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+    width: 200,
+  },
+  errorText: {
+    color: TV.color.white,
+    fontSize: TV.font.md,
+    marginTop: 8,
+    textAlign: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 4,
   },
   centerBtn: {
     position: 'absolute',
@@ -677,7 +819,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   qualityItemText: { fontSize: 15, color: '#ccc' },
-  qualityItemActive: { color: '#00AEEC', fontWeight: '700' },
+  qualityItemActive: { color: TV.color.accent, fontWeight: '700' },
   // 弹幕设置面板
   dmConfigPanel: {
     backgroundColor: '#222',
@@ -708,24 +850,88 @@ const styles = StyleSheet.create({
   },
   dmChipActive: {
     backgroundColor: '#1a3040',
-    borderColor: '#00AEEC',
+    borderColor: TV.color.accent,
   },
   dmChipText: { fontSize: 13, color: '#ccc' },
-  dmChipTextActive: { color: '#00AEEC', fontWeight: '600' },
+  dmChipTextActive: { color: TV.color.accent, fontWeight: '600' },
   dmChipFiltered: {
     backgroundColor: 'rgba(255,71,87,0.15)',
-    borderColor: '#ff4757',
+    borderColor: TV.color.danger,
   },
-  dmChipFilteredText: { color: '#ff4757' },
+  dmChipFilteredText: { color: TV.color.danger },
   dmCloseBtn: {
     marginTop: 16,
     alignSelf: 'center',
     paddingHorizontal: 24,
     paddingVertical: 8,
-    backgroundColor: '#00AEEC',
+    backgroundColor: TV.color.accent,
     borderRadius: 8,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   dmCloseBtnText: { fontSize: 14, color: '#fff', fontWeight: '600' },
+  // 选集抽屉
+  episodeOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    zIndex: 10,
+  },
+  episodeDrawer: {
+    width: 300,
+    backgroundColor: '#1a1a1a',
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  episodeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  epSortBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: '#333',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  epSortText: {
+    fontSize: 12,
+    color: '#aaa',
+  },
+  episodeScroll: {
+    flex: 1,
+  },
+  episodeItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    marginBottom: 4,
+  },
+  episodeItemActive: {
+    backgroundColor: TV.color.accentBg,
+    borderColor: TV.color.accent,
+  },
+  episodeItemText: {
+    fontSize: 14,
+    color: '#ccc',
+    flex: 1,
+  },
+  episodeItemTextActive: {
+    color: TV.color.accent,
+    fontWeight: '600',
+  },
 });

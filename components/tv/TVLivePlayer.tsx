@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { TVFocusable } from './TVFocusable';
+import { TV } from '../../constants/tvTheme';
 
 interface Props {
   hlsUrl: string;
@@ -42,8 +43,8 @@ export function TVLivePlayer({
   if (!isLive || !hlsUrl) {
     return (
       <View style={[styles.container, { width: SCREEN_W, height: VIDEO_H }]}>
-        <Ionicons name="tv-outline" size={48} color="#555" />
-        <Text style={styles.offlineText}>暂未开播</Text>
+        <Ionicons name="tv-outline" size={48} color={TV.color.textDisabled} />
+        <Text style={styles.offlineText}>暂未开播或无法获取直播流</Text>
       </View>
     );
   }
@@ -80,6 +81,7 @@ function NativeTVLivePlayer({
   const [showControls, setShowControls] = useState(true);
   const [paused, setPaused] = useState(false);
   const [buffering, setBuffering] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showQualityPanel, setShowQualityPanel] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const videoRef = useRef<any>(null);
@@ -117,7 +119,14 @@ function NativeTVLivePlayer({
         onBuffer={({ isBuffering }: { isBuffering: boolean }) =>
           setBuffering(isBuffering)
         }
-        onLoad={() => setBuffering(false)}
+        onLoad={() => {
+          setBuffering(false);
+          setError(null);
+        }}
+        onError={(e) => {
+          console.warn('TV Live playback error:', e);
+          setError('直播流加载失败，请尝试刷新或切换清晰度');
+        }}
       />
 
       {buffering && (
@@ -133,9 +142,17 @@ function NativeTVLivePlayer({
         scaleFactor={1}
         borderColor="transparent"
         hasTVPreferredFocus
+        accessibilityLabel={error ? '播放失败' : (paused ? '播放' : '暂停')}
       >
         <View style={StyleSheet.absoluteFill} />
       </TVFocusable>
+
+      {error && (
+        <View style={styles.errorContainer} pointerEvents="none">
+          <Ionicons name="warning-outline" size={48} color={TV.color.danger} />
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
 
       {showControls && (
         <>
@@ -145,7 +162,7 @@ function NativeTVLivePlayer({
               <Ionicons
                 name={paused ? 'play' : 'pause'}
                 size={36}
-                color="#fff"
+                color={TV.color.white}
               />
             </View>
           </View>
@@ -160,7 +177,7 @@ function NativeTVLivePlayer({
               <Ionicons
                 name={paused ? 'play' : 'pause'}
                 size={18}
-                color="#fff"
+                color={TV.color.white}
               />
             </TVFocusable>
 
@@ -212,7 +229,7 @@ function NativeTVLivePlayer({
                   {q.desc}
                 </Text>
                 {currentQn === q.qn && (
-                  <Ionicons name="checkmark" size={16} color="#00AEEC" />
+                  <Ionicons name="checkmark" size={16} color={TV.color.accent} />
                 )}
               </TVFocusable>
             ))}
@@ -229,13 +246,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  offlineText: { color: '#999', fontSize: 16, marginTop: 12 },
+  offlineText: { color: TV.color.textDisabled, fontSize: 16, marginTop: 12 },
   bufferingOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bufferingText: { color: '#fff', fontSize: 15, opacity: 0.8 },
+  bufferingText: { color: TV.color.white, fontSize: 15, opacity: 0.8 },
+  errorContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -100 }, { translateY: -40 }],
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+    width: 200,
+  },
+  errorText: {
+    color: TV.color.white,
+    fontSize: TV.font.md,
+    marginTop: 8,
+    textAlign: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
   mainFocusArea: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 1,
@@ -282,7 +319,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  qualityText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  qualityText: { color: TV.color.white, fontSize: 13, fontWeight: '600' },
   qualityOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.6)',
@@ -291,19 +328,19 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   qualityPanel: {
-    backgroundColor: '#222',
+    backgroundColor: TV.color.surface,
     borderRadius: 12,
     paddingBottom: 16,
     minWidth: 220,
   },
   qualityPanelTitle: {
-    color: '#fff',
+    color: TV.color.white,
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#444',
+    borderBottomColor: TV.color.border,
   },
   qualityItem: {
     flexDirection: 'row',
@@ -315,7 +352,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
     borderRadius: 4,
   },
-  qualityItemActive: { backgroundColor: 'rgba(0,174,236,0.15)' },
-  qualityItemText: { color: '#ccc', fontSize: 15 },
-  qualityItemTextActive: { color: '#00AEEC', fontWeight: '600' },
+  qualityItemActive: { backgroundColor: TV.color.accentBg },
+  qualityItemText: { color: TV.color.textSecondary, fontSize: 15 },
+  qualityItemTextActive: { color: TV.color.accent, fontWeight: '600' },
 });

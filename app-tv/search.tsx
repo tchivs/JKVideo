@@ -67,7 +67,7 @@ export default function TVSearchScreen() {
           scaleFactor={1.1}
           accessibilityLabel="返回"
         >
-          <Ionicons name="chevron-back" size={24} color="#ccc" />
+          <Ionicons name="chevron-back" size={24} color={TV.color.textSecondary} />
         </TVFocusable>
 
         <View style={styles.inputWrap}>
@@ -75,7 +75,7 @@ export default function TVSearchScreen() {
             ref={inputRef}
             style={styles.input}
             placeholder="搜索视频、UP主..."
-            placeholderTextColor="#666"
+            placeholderTextColor={TV.color.textTertiary}
             value={keyword}
             onChangeText={setKeyword}
             onSubmitEditing={() => handleSearch()}
@@ -112,7 +112,7 @@ export default function TVSearchScreen() {
               scaleFactor={1}
               accessibilityLabel="清空搜索历史"
             >
-              <Ionicons name="trash-outline" size={14} color="#888" />
+              <Ionicons name="trash-outline" size={14} color={TV.color.textTertiary} />
               <Text style={styles.clearText}>清空</Text>
             </TVFocusable>
           </View>
@@ -151,7 +151,7 @@ export default function TVSearchScreen() {
         ListEmptyComponent={
           !loading && !showHistory ? (
             <TVFadeIn style={styles.emptyBox}>
-              <Ionicons name="search-outline" size={48} color="#444" />
+              <Ionicons name="search-outline" size={48} color={TV.color.textTertiary} />
               <Text style={styles.emptyText}>
                 {results.length === 0 && keyword.trim()
                   ? '没有找到相关视频'
@@ -162,7 +162,7 @@ export default function TVSearchScreen() {
         }
         ListFooterComponent={
           loading && results.length > 0 ? (
-            <ActivityIndicator color="#00AEEC" style={styles.loader} />
+            <ActivityIndicator color={TV.color.accent} style={styles.loader} />
           ) : null
         }
       />
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  historyChipText: { fontSize: TV.font.base, color: '#ccc' },
+  historyChipText: { fontSize: TV.font.base, color: TV.color.textSecondary },
   // 结果
   listContent: { padding: TV.layout.listPadding },
   row: { gap: TV.layout.gridGap },
@@ -254,6 +254,6 @@ const styles = StyleSheet.create({
     paddingTop: 80,
     gap: TV.space.md,
   },
-  emptyText: { fontSize: TV.font.xl, color: '#555' },
+  emptyText: { fontSize: TV.font.xl, color: TV.color.textTertiary },
   loader: { marginVertical: TV.space.xl },
 });

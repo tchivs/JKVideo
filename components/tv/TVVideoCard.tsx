@@ -28,8 +28,10 @@ export const TVVideoCard = React.memo(function TVVideoCard({
   onPress,
 }: Props) {
   const { width } = useWindowDimensions();
-  // TV 横屏 5 列布局，留 40px 总间距
-  const CARD_WIDTH = (width - 40) / 5;
+  const NUM_COLUMNS = 5;
+  const CARD_WIDTH =
+    (width - TV.layout.contentPaddingH * 2 - TV.layout.gridGap * (NUM_COLUMNS - 1)) /
+    NUM_COLUMNS;
 
   const coverQuality = useSettingsStore(s => s.coverQuality);
 

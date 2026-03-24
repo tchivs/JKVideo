@@ -106,7 +106,7 @@ export default function TVRankingScreen() {
           scaleFactor={1.1}
           accessibilityLabel="返回"
         >
-          <Ionicons name="chevron-back" size={24} color="#ccc" />
+          <Ionicons name="chevron-back" size={24} color={TV.color.textSecondary} />
         </TVFocusable>
         <Text style={styles.headerTitle}>排行榜</Text>
       </View>
@@ -126,7 +126,7 @@ export default function TVRankingScreen() {
             <Ionicons
               name={cat.icon as any}
               size={14}
-              color={category === cat.id ? '#00AEEC' : '#888'}
+              color={category === cat.id ? TV.color.accent : TV.color.textTertiary}
             />
             <Text
               style={[
@@ -145,7 +145,7 @@ export default function TVRankingScreen() {
         <TVSkeleton />
       ) : error ? (
         <TVFadeIn style={styles.errorBox}>
-          <Ionicons name="cloud-offline-outline" size={48} color="#666" />
+          <Ionicons name="cloud-offline-outline" size={48} color={TV.color.textTertiary} />
           <Text style={styles.errorText}>{error}</Text>
           <TVFocusable
             style={styles.retryBtn}
@@ -174,7 +174,7 @@ export default function TVRankingScreen() {
           removeClippedSubviews
           ListFooterComponent={
             loadingMore ? (
-              <ActivityIndicator color="#00AEEC" style={styles.loader} />
+              <ActivityIndicator color={TV.color.accent} style={styles.loader} />
             ) : null
           }
         />

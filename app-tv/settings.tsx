@@ -14,6 +14,34 @@ import { useSettingsStore } from '../store/settingsStore';
 import { useCheckUpdate } from '../hooks/useCheckUpdate';
 import { TV } from '../constants/tvTheme';
 
+const QN_OPTIONS = [
+  { qn: 16, label: '360P' },
+  { qn: 32, label: '480P' },
+  { qn: 64, label: '720P' },
+  { qn: 80, label: '1080P' },
+  { qn: 116, label: '1080P60' },
+];
+
+const OPACITY_OPTIONS = [0.25, 0.5, 0.75, 1];
+
+const FONT_SCALE_OPTIONS = [
+  { v: 0.7 as const, l: '小' },
+  { v: 1 as const, l: '标准' },
+  { v: 1.3 as const, l: '大' }
+];
+
+const AREA_RATIO_OPTIONS = [
+  { v: 0.25 as const, l: '1/4屏' },
+  { v: 0.5 as const, l: '半屏' },
+  { v: 0.75 as const, l: '3/4屏' },
+  { v: 1 as const, l: '全屏' }
+];
+
+const FILTER_MODES = [
+  { mode: 1, label: '滚动' },
+  { mode: 5, label: '顶部' },
+  { mode: 4, label: '底部' }
+];
 /**
  * TV 版设置页。所有选项使用 TVFocusable，D-Pad 可导航。
  */
@@ -47,7 +75,7 @@ export default function TVSettingsScreen() {
           scaleFactor={1.1}
           accessibilityLabel="返回"
         >
-          <Ionicons name="chevron-back" size={24} color="#ccc" />
+          <Ionicons name="chevron-back" size={24} color={TV.color.textSecondary} />
         </TVFocusable>
         <Text style={styles.headerTitle}>设置</Text>
       </View>
@@ -74,9 +102,7 @@ export default function TVSettingsScreen() {
             {isChecking ? (
               <>
                 <ActivityIndicator
-                  size="small"
-                  color="#00AEEC"
-                  style={{ marginRight: 8 }}
+                  color={TV.color.accent}
                 />
                 <Text style={styles.optionBtnText}>检查中...</Text>
               </>
@@ -135,13 +161,7 @@ export default function TVSettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>默认播放清晰度</Text>
           <View style={styles.optionRow}>
-            {[
-              { qn: 16, label: '360P' },
-              { qn: 32, label: '480P' },
-              { qn: 64, label: '720P' },
-              { qn: 80, label: '1080P' },
-              { qn: 116, label: '1080P60' },
-            ].map(q => (
+            {QN_OPTIONS.map(q => (
               <TVFocusable
                 key={q.qn}
                 style={[styles.option, defaultQn === q.qn && styles.optionActive]}
@@ -175,7 +195,7 @@ export default function TVSettingsScreen() {
 
           <Text style={styles.sublabel}>透明度</Text>
           <View style={[styles.optionRow, { marginBottom: 10 }]}>
-            {[0.25, 0.5, 0.75, 1].map(v => (
+            {OPACITY_OPTIONS.map(v => (
               <TVFocusable
                 key={v}
                 style={[styles.option, dmOpacity === v && styles.optionActive]}
@@ -191,7 +211,7 @@ export default function TVSettingsScreen() {
 
           <Text style={styles.sublabel}>字号</Text>
           <View style={[styles.optionRow, { marginBottom: 10 }]}>
-            {([{ v: 0.7, l: '小' }, { v: 1, l: '标准' }, { v: 1.3, l: '大' }] as const).map(({ v, l }) => (
+            {FONT_SCALE_OPTIONS.map(({ v, l }) => (
               <TVFocusable
                 key={v}
                 style={[styles.option, dmFontScale === v && styles.optionActive]}
@@ -207,7 +227,7 @@ export default function TVSettingsScreen() {
 
           <Text style={styles.sublabel}>显示区域</Text>
           <View style={[styles.optionRow, { marginBottom: 10 }]}>
-            {([{ v: 0.25, l: '1/4屏' }, { v: 0.5, l: '半屏' }, { v: 0.75, l: '3/4屏' }, { v: 1, l: '全屏' }] as const).map(({ v, l }) => (
+            {AREA_RATIO_OPTIONS.map(({ v, l }) => (
               <TVFocusable
                 key={v}
                 style={[styles.option, dmAreaRatio === v && styles.optionActive]}
@@ -223,7 +243,7 @@ export default function TVSettingsScreen() {
 
           <Text style={styles.sublabel}>屏蔽类型</Text>
           <View style={styles.optionRow}>
-            {([{ mode: 1, label: '滚动' }, { mode: 5, label: '顶部' }, { mode: 4, label: '底部' }] as const).map(({ mode, label }) => {
+            {FILTER_MODES.map(({ mode, label }) => {
               const isFiltered = dmFilterModes.includes(mode);
               return (
                 <TVFocusable
@@ -252,7 +272,7 @@ export default function TVSettingsScreen() {
             style={styles.logoutBtn}
             onPress={handleLogout}
             scaleFactor={1}
-            borderColor="#ff4757"
+            borderColor={TV.color.danger}
           >
             <Text style={styles.logoutText}>退出登录</Text>
           </TVFocusable>
@@ -260,21 +280,10 @@ export default function TVSettingsScreen() {
           <TVFocusable
             style={styles.loginBtn}
             onPress={() => setShowLogin(true)}
-            scaleFactor={1}
           >
             <Text style={styles.loginText}>登录账号</Text>
           </TVFocusable>
         )}
-
-        {/* 下载管理 */}
-        <TVFocusable
-          style={styles.downloadsBtn}
-          onPress={() => router.push('/downloads' as any)}
-          scaleFactor={1}
-        >
-          <Ionicons name="cloud-download-outline" size={18} color="#ccc" />
-          <Text style={styles.downloadsBtnText}>下载管理</Text>
-        </TVFocusable>
       </View>
 
       <TVLoginModal
@@ -345,7 +354,7 @@ const styles = StyleSheet.create({
     paddingVertical: TV.space.sm,
     borderRadius: TV.radius.pill,
     borderWidth: 2,
-    borderColor: '#444',
+    borderColor: TV.color.border,
     backgroundColor: TV.color.surfaceLight,
   },
   optionActive: { borderColor: TV.color.accent, backgroundColor: TV.color.accentBg },
@@ -376,18 +385,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loginText: { fontSize: TV.font.xl, color: TV.color.white, fontWeight: '600' },
-  downloadsBtn: {
-    marginHorizontal: TV.space.xl,
-    marginTop: TV.space.md,
-    paddingVertical: TV.space.lg - 2,
-    borderRadius: TV.radius.md,
-    backgroundColor: TV.color.surface,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: TV.space.sm,
-  },
-  downloadsBtnText: { fontSize: TV.font.xl, color: '#ccc' },
 });

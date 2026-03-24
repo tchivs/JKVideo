@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { generateQRCode, pollQRCode, getUserInfo } from '../../services/bilibili';
 import { useAuthStore } from '../../store/authStore';
 import { TVFocusable } from './TVFocusable';
+import { TV } from '../../constants/tvTheme';
 
 interface Props {
   visible: boolean;
@@ -113,7 +114,7 @@ export function TVLoginModal({ visible, onClose }: Props) {
           {status === 'loading' && (
             <ActivityIndicator
               size="large"
-              color="#00AEEC"
+              color={TV.color.accent}
               style={styles.loader}
             />
           )}
@@ -140,7 +141,7 @@ export function TVLoginModal({ visible, onClose }: Props) {
           {status === 'error' && (
             <>
               <View style={styles.errorBox}>
-                <Ionicons name="alert-circle" size={48} color="#ff4757" />
+                <Ionicons name="alert-circle" size={48} color={TV.color.danger} />
                 <Text style={styles.errorText}>二维码已过期</Text>
               </View>
               <TVFocusable
@@ -177,56 +178,56 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   card: {
-    backgroundColor: '#1e1e1e',
-    borderRadius: 16,
-    padding: 32,
+    backgroundColor: TV.color.surfaceAlt,
+    borderRadius: TV.radius.lg,
+    padding: TV.space.xxl,
     alignItems: 'center',
     minWidth: 340,
   },
   title: {
-    fontSize: 20,
+    fontSize: TV.font.xl,
     fontWeight: '700',
-    color: '#e0e0e0',
-    marginBottom: 24,
+    color: TV.color.textPrimary,
+    marginBottom: TV.space.xl,
   },
   loader: { marginVertical: 40 },
   qrContainer: {
     width: 220,
     height: 220,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
+    backgroundColor: TV.color.white,
+    borderRadius: TV.radius.md,
+    padding: TV.space.md,
+    marginBottom: TV.space.lg,
   },
   qr: { width: '100%', height: '100%' },
   hint: {
-    fontSize: 14,
-    color: '#aaa',
-    marginBottom: 20,
+    fontSize: TV.font.base,
+    color: TV.color.textTertiary,
+    marginBottom: TV.space.xl,
     textAlign: 'center',
   },
   errorBox: {
     alignItems: 'center',
-    marginVertical: 24,
-    gap: 8,
+    marginVertical: TV.space.xl,
+    gap: TV.space.sm,
   },
-  errorText: { fontSize: 15, color: '#ff4757' },
+  errorText: { fontSize: TV.font.base, color: TV.color.danger },
   refreshBtn: {
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    backgroundColor: '#00AEEC',
-    borderRadius: 8,
-    marginBottom: 12,
+    paddingHorizontal: TV.space.xl,
+    paddingVertical: TV.space.md - 2,
+    backgroundColor: TV.color.accent,
+    borderRadius: TV.radius.sm,
+    marginBottom: TV.space.md,
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  refreshBtnText: { fontSize: 14, color: '#fff', fontWeight: '600' },
+  refreshBtnText: { fontSize: TV.font.base, color: TV.color.white, fontWeight: '600' },
   closeBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 6,
+    paddingHorizontal: TV.space.lg,
+    paddingVertical: TV.space.sm,
+    borderRadius: TV.radius.sm,
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  closeBtnText: { fontSize: 14, color: '#888' },
+  closeBtnText: { fontSize: TV.font.base, color: TV.color.textTertiary },
 });

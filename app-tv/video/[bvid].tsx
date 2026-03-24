@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Image,
   ActivityIndicator,
   ScrollView,
+  Animated,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +21,7 @@ import { useRelatedVideos } from '../../hooks/useRelatedVideos';
 import { useHistoryStore } from '../../store/historyStore';
 import { formatCount } from '../../utils/format';
 import { proxyImageUrl } from '../../utils/imageUrl';
+import { TV } from '../../constants/tvTheme';
 
 type InfoTab = 'intro' | 'comments';
 
@@ -34,6 +36,7 @@ export default function TVVideoDetailScreen() {
     video,
     playData,
     loading: videoLoading,
+    error: videoError,
     qualities,
     currentQn,
     changeQuality,
@@ -108,6 +111,43 @@ export default function TVVideoDetailScreen() {
   const hasPages = pages.length > 1;
   const [currentPage, setCurrentPage] = useState(0);
 
+  // 倒序功能
+  const [episodesReversed, setEpisodesReversed] = useState(false);
+  const [pagesReversed, setPagesReversed] = useState(false);
+  const epSortAnim = useRef(new Animated.Value(0)).current;
+  const pageSortAnim = useRef(new Animated.Value(0)).current;
+
+  const toggleEpisodesOrder = useCallback(() => {
+    const next = !episodesReversed;
+    setEpisodesReversed(next);
+    Animated.spring(epSortAnim, {
+      toValue: next ? 1 : 0,
+      useNativeDriver: true,
+      tension: 120,
+      friction: 8,
+    }).start();
+  }, [episodesReversed, epSortAnim]);
+
+  const togglePagesOrder = useCallback(() => {
+    const next = !pagesReversed;
+    setPagesReversed(next);
+    Animated.spring(pageSortAnim, {
+      toValue: next ? 1 : 0,
+      useNativeDriver: true,
+      tension: 120,
+      friction: 8,
+    }).start();
+  }, [pagesReversed, pageSortAnim]);
+
+  const displayedEpisodes = useMemo(
+    () => (episodesReversed ? [...episodes].reverse() : episodes),
+    [episodes, episodesReversed],
+  );
+  const displayedPages = useMemo(
+    () => (pagesReversed ? [...pages].reverse() : pages),
+    [pages, pagesReversed],
+  );
+
   const handlePageChange = useCallback(
     (cid: number, index: number) => {
       setCurrentPage(index);
@@ -115,6 +155,37 @@ export default function TVVideoDetailScreen() {
       getDanmaku(cid).then(setDanmakus);
     },
     [],
+  );
+
+  // 给播放器内置选集面板准备数据
+  const playerEpisodes = useMemo(() => {
+    if (hasEpisodes) {
+      return episodes.map(ep => ({
+        id: ep.bvid,
+        title: ep.title,
+        isCurrent: ep.bvid === bvid,
+      }));
+    }
+    if (hasPages) {
+      return pages.map((p, i) => ({
+        id: String(p.cid),
+        title: `P${i + 1} ${p.part}`,
+        isCurrent: i === currentPage,
+      }));
+    }
+    return undefined;
+  }, [episodes, pages, bvid, currentPage, hasEpisodes, hasPages]);
+
+  const handlePlayerEpisodeChange = useCallback(
+    (id: string) => {
+      if (hasEpisodes) {
+        router.replace(`/video/${id}`);
+      } else if (hasPages) {
+        const idx = pages.findIndex(p => String(p.cid) === id);
+        if (idx >= 0) handlePageChange(pages[idx].cid, idx);
+      }
+    },
+    [hasEpisodes, hasPages, pages, router, handlePageChange],
   );
 
   return (
@@ -132,13 +203,20 @@ export default function TVVideoDetailScreen() {
           isFullscreen
           onTimeUpdate={handleTimeUpdate}
           initialTime={savedProgress}
+          episodes={playerEpisodes}
+          onEpisodeChange={handlePlayerEpisodeChange}
         />
       </View>
 
       {/* 右侧信息面板 */}
       <View style={styles.infoSection}>
         {videoLoading ? (
-          <ActivityIndicator color="#00AEEC" style={styles.loader} />
+          <ActivityIndicator color={TV.color.accent} style={styles.loader} />
+        ) : videoError ? (
+          <View style={styles.errorContainer}>
+            <Ionicons name="warning-outline" size={36} color={TV.color.danger} />
+            <Text style={styles.errorText}>加载失败：{videoError}</Text>
+          </View>
         ) : video ? (
           <>
             {/* Tab 栏 */}
@@ -190,7 +268,7 @@ export default function TVVideoDetailScreen() {
                     source={{ uri: proxyImageUrl(video.owner.face) }}
                     style={styles.avatar}
                   />
-                  <Text style={styles.upName}>{video.owner.name}</Text>
+                  <Text style={styles.upName} numberOfLines={1}>{video.owner.name}</Text>
                 </View>
 
                 {/* 标题 */}
@@ -215,15 +293,46 @@ export default function TVVideoDetailScreen() {
                 {/* 合集/剧集列表 */}
                 {hasEpisodes && (
                   <View style={styles.seasonBox}>
-                    <Text style={styles.sectionTitle}>
-                      合集 · {video.ugc_season!.title} ({video.ugc_season!.ep_count}集)
-                    </Text>
+                    <View style={styles.sectionHeader}>
+                      <Text style={styles.sectionTitle}>
+                        合集 · {video.ugc_season!.title} ({video.ugc_season!.ep_count}集)
+                      </Text>
+                      <TVFocusable
+                        style={styles.sortToggle}
+                        onPress={toggleEpisodesOrder}
+                        scaleFactor={1.1}
+                        accessibilityLabel={episodesReversed ? '正序排列' : '倒序排列'}
+                      >
+                        <Animated.View
+                          style={{
+                            transform: [{
+                              rotate: epSortAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: ['0deg', '180deg'],
+                              }),
+                            }],
+                          }}
+                        >
+                          <Ionicons
+                            name="swap-vertical"
+                            size={16}
+                            color={episodesReversed ? TV.color.accent : TV.color.textTertiary}
+                          />
+                        </Animated.View>
+                        <Text style={[
+                          styles.sortToggleText,
+                          episodesReversed && styles.sortToggleTextActive,
+                        ]}>
+                          {episodesReversed ? '倒序' : '正序'}
+                        </Text>
+                      </TVFocusable>
+                    </View>
                     <ScrollView
                       horizontal
                       showsHorizontalScrollIndicator={false}
                     >
                       <View style={styles.episodeRow}>
-                        {episodes.map((ep, i) => (
+                        {displayedEpisodes.map((ep, i) => (
                           <TVFocusable
                             key={ep.bvid}
                             style={[
@@ -257,39 +366,75 @@ export default function TVVideoDetailScreen() {
                 {/* 分P选集 */}
                 {hasPages && (
                   <View style={styles.seasonBox}>
-                    <Text style={styles.sectionTitle}>
-                      选集 ({pages.length}P)
-                    </Text>
+                    <View style={styles.sectionHeader}>
+                      <Text style={styles.sectionTitle}>
+                        选集 ({pages.length}P)
+                      </Text>
+                      {pages.length > 10 && (
+                        <TVFocusable
+                          style={styles.sortToggle}
+                          onPress={togglePagesOrder}
+                          scaleFactor={1.1}
+                          accessibilityLabel={pagesReversed ? '正序排列' : '倒序排列'}
+                        >
+                          <Animated.View
+                            style={{
+                              transform: [{
+                                rotate: pageSortAnim.interpolate({
+                                  inputRange: [0, 1],
+                                  outputRange: ['0deg', '180deg'],
+                                }),
+                              }],
+                            }}
+                          >
+                            <Ionicons
+                              name="swap-vertical"
+                              size={16}
+                              color={pagesReversed ? TV.color.accent : TV.color.textTertiary}
+                            />
+                          </Animated.View>
+                          <Text style={[
+                            styles.sortToggleText,
+                            pagesReversed && styles.sortToggleTextActive,
+                          ]}>
+                            {pagesReversed ? '倒序' : '正序'}
+                          </Text>
+                        </TVFocusable>
+                      )}
+                    </View>
                     <ScrollView
                       horizontal
                       showsHorizontalScrollIndicator={false}
                     >
                       <View style={styles.episodeRow}>
-                        {pages.map((p, i) => (
-                          <TVFocusable
-                            key={p.cid}
-                            style={[
-                              styles.episodeChip,
-                              i === currentPage &&
-                                styles.episodeChipActive,
-                            ]}
-                            onPress={() =>
-                              handlePageChange(p.cid, i)
-                            }
-                            scaleFactor={1}
-                          >
-                            <Text
+                        {displayedPages.map((p, i) => {
+                          const realIndex = pagesReversed ? pages.length - 1 - i : i;
+                          return (
+                            <TVFocusable
+                              key={p.cid}
                               style={[
-                                styles.episodeText,
-                                i === currentPage &&
-                                  styles.episodeTextActive,
+                                styles.episodeChip,
+                                realIndex === currentPage &&
+                                  styles.episodeChipActive,
                               ]}
-                              numberOfLines={1}
+                              onPress={() =>
+                                handlePageChange(p.cid, realIndex)
+                              }
+                              scaleFactor={1}
                             >
-                              P{i + 1} {p.part}
-                            </Text>
-                          </TVFocusable>
-                        ))}
+                              <Text
+                                style={[
+                                  styles.episodeText,
+                                  realIndex === currentPage &&
+                                    styles.episodeTextActive,
+                                ]}
+                                numberOfLines={1}
+                              >
+                                P{realIndex + 1} {p.part}
+                              </Text>
+                            </TVFocusable>
+                          );
+                        })}
                       </View>
                     </ScrollView>
                   </View>
@@ -318,7 +463,7 @@ export default function TVVideoDetailScreen() {
                       >
                         {item.title}
                       </Text>
-                      <Text style={styles.relatedMeta}>
+                      <Text style={styles.relatedMeta} numberOfLines={1}>
                         {item.owner?.name ?? ''} ·{' '}
                         {formatCount(item.stat?.view ?? 0)}播放
                       </Text>
@@ -327,7 +472,7 @@ export default function TVVideoDetailScreen() {
                 ))}
                 {relatedLoading && (
                   <ActivityIndicator
-                    color="#00AEEC"
+                    color={TV.color.accent}
                     style={styles.loader}
                   />
                 )}
@@ -402,7 +547,7 @@ export default function TVVideoDetailScreen() {
                         <Ionicons
                           name="heart-outline"
                           size={12}
-                          color="#666"
+                          color={TV.color.textDisabled}
                         />
                         <Text style={styles.cmtLike}>
                           {formatCount(c.like ?? 0)}
@@ -419,7 +564,7 @@ export default function TVVideoDetailScreen() {
                 ListFooterComponent={
                   cmtLoading ? (
                     <ActivityIndicator
-                      color="#00AEEC"
+                      color={TV.color.accent}
                       style={styles.loader}
                     />
                   ) : null
@@ -436,7 +581,7 @@ export default function TVVideoDetailScreen() {
 function StatBadge({ icon, count }: { icon: string; count: number }) {
   return (
     <View style={styles.stat}>
-      <Ionicons name={icon as any} size={13} color="#888" />
+      <Ionicons name={icon as any} size={13} color={TV.color.textTertiary} />
       <Text style={styles.statText}>{formatCount(count)}</Text>
     </View>
   );
@@ -446,18 +591,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: '#121212',
+    backgroundColor: TV.color.bg,
   },
   playerSection: { flex: 3 },
   infoSection: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: TV.color.surface,
   },
   loader: { marginVertical: 20 },
+  errorContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: TV.space.xl,
+    gap: TV.space.md,
+  },
+  errorText: {
+    color: TV.color.textSecondary,
+    fontSize: TV.font.md,
+    textAlign: 'center',
+  },
   tabBar: {
     flexDirection: 'row',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#333',
+    borderBottomColor: TV.color.border,
   },
   tabItem: {
     paddingHorizontal: 16,
@@ -466,9 +623,9 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
     borderRadius: 4,
   },
-  tabItemActive: { borderBottomColor: '#00AEEC' },
-  tabText: { fontSize: 13, color: '#888' },
-  tabTextActive: { color: '#00AEEC', fontWeight: '600' },
+  tabItemActive: { borderBottomColor: TV.color.accent },
+  tabText: { fontSize: 13, color: TV.color.textTertiary },
+  tabTextActive: { color: TV.color.accent, fontWeight: '600' },
   scrollArea: { flex: 1, paddingHorizontal: 12, paddingTop: 8 },
   // UP 主
   upRow: {
@@ -481,14 +638,14 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#333',
+    backgroundColor: TV.color.surfaceAlt,
   },
-  upName: { fontSize: 13, color: '#aaa', fontWeight: '500' },
+  upName: { fontSize: 13, color: TV.color.textSecondary, fontWeight: '500', flexShrink: 1 },
   // 标题
   title: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#e0e0e0',
+    color: TV.color.textPrimary,
     lineHeight: 21,
     marginBottom: 8,
   },
@@ -499,29 +656,53 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   stat: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  statText: { fontSize: 11, color: '#888' },
+  statText: { fontSize: 11, color: TV.color.textTertiary },
   // 简介
   desc: {
     fontSize: 12,
-    color: '#777',
+    color: TV.color.textTertiary,
     lineHeight: 18,
     marginBottom: 10,
     paddingTop: 4,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#333',
+    borderTopColor: TV.color.border,
   },
   // 合集 & 分P
   seasonBox: {
     marginBottom: 12,
     paddingTop: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#333',
+    borderTopColor: TV.color.border,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
   sectionTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#ccc',
-    marginBottom: 8,
+    color: TV.color.textSecondary,
+  },
+  sortToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: TV.color.surfaceAlt,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  sortToggleText: {
+    fontSize: 11,
+    color: TV.color.textTertiary,
+  },
+  sortToggleTextActive: {
+    color: TV.color.accent,
+    fontWeight: '600',
   },
   episodeRow: {
     flexDirection: 'row',
@@ -531,39 +712,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 4,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: TV.color.surfaceAlt,
     borderWidth: 2,
     borderColor: 'transparent',
     maxWidth: 140,
   },
   episodeChipActive: {
-    borderColor: '#00AEEC',
-    backgroundColor: '#1a3040',
+    borderColor: TV.color.accent,
+    backgroundColor: TV.color.accentBg,
   },
-  episodeText: { fontSize: 11, color: '#aaa' },
-  episodeTextActive: { color: '#00AEEC', fontWeight: '600' },
+  episodeText: { fontSize: 11, color: TV.color.textSecondary },
+  episodeTextActive: { color: TV.color.accent, fontWeight: '600' },
   // 推荐
   relatedCard: {
     flexDirection: 'row',
     marginBottom: 8,
     borderRadius: 6,
     overflow: 'hidden',
-    backgroundColor: '#252525',
+    backgroundColor: TV.color.surface,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   relatedThumb: {
     width: 100,
     height: 56,
-    backgroundColor: '#333',
+    backgroundColor: TV.color.surfaceAlt,
   },
   relatedInfo: {
     flex: 1,
     padding: 6,
     justifyContent: 'space-between',
   },
-  relatedTitle: { fontSize: 12, color: '#ccc', lineHeight: 16 },
-  relatedMeta: { fontSize: 10, color: '#666' },
+  relatedTitle: { fontSize: 12, color: TV.color.textSecondary, lineHeight: 16 },
+  relatedMeta: { fontSize: 10, color: TV.color.textDisabled },
   // 评论
   sortRow: {
     flexDirection: 'row',
@@ -574,16 +755,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: TV.color.surfaceAlt,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   sortBtnActive: {
-    backgroundColor: '#1a3040',
-    borderColor: '#00AEEC',
+    backgroundColor: TV.color.accentBg,
+    borderColor: TV.color.accent,
   },
-  sortBtnText: { fontSize: 12, color: '#888' },
-  sortBtnTextActive: { color: '#00AEEC', fontWeight: '600' },
+  sortBtnText: { fontSize: 12, color: TV.color.textTertiary },
+  sortBtnTextActive: { color: TV.color.accent, fontWeight: '600' },
   commentItem: {
     flexDirection: 'row',
     marginBottom: 12,
@@ -593,21 +774,21 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#333',
+    backgroundColor: TV.color.surfaceAlt,
   },
   cmtBody: { flex: 1 },
-  cmtName: { fontSize: 11, color: '#888', marginBottom: 2 },
-  cmtContent: { fontSize: 12, color: '#ccc', lineHeight: 17 },
+  cmtName: { fontSize: 11, color: TV.color.textTertiary, marginBottom: 2 },
+  cmtContent: { fontSize: 12, color: TV.color.textSecondary, lineHeight: 17 },
   cmtMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
     marginTop: 4,
   },
-  cmtLike: { fontSize: 10, color: '#666' },
+  cmtLike: { fontSize: 10, color: TV.color.textDisabled },
   emptyText: {
     textAlign: 'center',
-    color: '#555',
+    color: TV.color.textDisabled,
     fontSize: 13,
     marginTop: 20,
   },

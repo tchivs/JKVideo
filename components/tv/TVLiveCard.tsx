@@ -27,7 +27,10 @@ export const TVLiveCard = React.memo(function TVLiveCard({
   onPress,
 }: Props) {
   const { width } = useWindowDimensions();
-  const CARD_WIDTH = (width - 40) / 5;
+  const NUM_COLUMNS = 5;
+  const CARD_WIDTH =
+    (width - TV.layout.contentPaddingH * 2 - TV.layout.gridGap * (NUM_COLUMNS - 1)) /
+    NUM_COLUMNS;
 
   return (
     <TVFocusable

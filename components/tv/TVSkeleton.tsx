@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated, useWindowDimensions } from 'react-native';
+import { TV } from '../../constants/tvTheme';
 
 interface Props {
   /** 骨架条数，默认 5 列 x 3 行 = 15 */
@@ -79,10 +80,10 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: '#1e1e1e',
+    backgroundColor: TV.color.surface,
   },
   thumb: {
-    backgroundColor: '#2a2a2a',
+    backgroundColor: TV.color.surfaceAlt,
   },
   textBlock: {
     padding: 8,
@@ -91,13 +92,13 @@ const styles = StyleSheet.create({
   titleLine: {
     height: 12,
     borderRadius: 3,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: TV.color.surfaceAlt,
     width: '80%',
   },
   subtitleLine: {
     height: 10,
     borderRadius: 3,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: TV.color.surfaceAlt,
     width: '50%',
   },
 });

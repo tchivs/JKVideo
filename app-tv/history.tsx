@@ -92,7 +92,7 @@ export default function TVHistoryScreen() {
           scaleFactor={1.1}
           accessibilityLabel="返回"
         >
-          <Ionicons name="chevron-back" size={24} color="#ccc" />
+          <Ionicons name="chevron-back" size={24} color={TV.color.textSecondary} />
         </TVFocusable>
         <Text style={styles.headerTitle}>观看历史</Text>
         <View style={{ flex: 1 }} />
@@ -112,7 +112,7 @@ export default function TVHistoryScreen() {
             scaleFactor={1}
             accessibilityLabel="清空观看历史"
           >
-            <Ionicons name="trash-outline" size={16} color="#888" />
+            <Ionicons name="trash-outline" size={16} color={TV.color.textTertiary} />
             <Text style={styles.clearText}>清空</Text>
           </TVFocusable>
         )}
@@ -120,7 +120,7 @@ export default function TVHistoryScreen() {
 
       {items.length === 0 ? (
         <TVFadeIn style={styles.empty}>
-          <Ionicons name="time-outline" size={56} color="#444" />
+          <Ionicons name="time-outline" size={56} color={TV.color.textTertiary} />
           <Text style={styles.emptyText}>暂无观看记录</Text>
           <Text style={styles.emptyHint}>观看视频后自动记录在这里</Text>
         </TVFadeIn>
@@ -129,7 +129,7 @@ export default function TVHistoryScreen() {
           data={items}
           keyExtractor={item => item.bvid}
           renderItem={renderItem}
-          numColumns={4}
+          numColumns={5}
           columnWrapperStyle={styles.gridRow}
           contentContainerStyle={styles.listContent}
           windowSize={5}
@@ -171,11 +171,11 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   clearText: { fontSize: TV.font.base, color: TV.color.textTertiary },
-  listContent: { padding: TV.space.md },
-  gridRow: { gap: TV.space.md - 2 },
+  listContent: { padding: TV.layout.listPadding },
+  gridRow: { gap: TV.layout.gridGap },
   row: {
     flex: 1,
-    marginBottom: TV.space.md - 2,
+    marginBottom: TV.layout.gridGap,
     borderRadius: TV.radius.md,
     overflow: 'hidden',
     backgroundColor: TV.color.surface,
@@ -225,6 +225,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: TV.space.md,
   },
-  emptyText: { fontSize: TV.font.xl, color: '#555' },
-  emptyHint: { fontSize: TV.font.md, color: '#444' },
+  emptyText: { fontSize: TV.font.xl, color: TV.color.textSecondary },
+  emptyHint: { fontSize: TV.font.md, color: TV.color.textTertiary },
 });

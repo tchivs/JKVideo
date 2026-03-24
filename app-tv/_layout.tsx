@@ -2,13 +2,12 @@ import { Stack, useRootNavigationState } from 'expo-router';
 import { View, BackHandler, ToastAndroid } from 'react-native';
 import { useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { useDownloadStore } from '../store/downloadStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useHistoryStore } from '../store/historyStore';
+import { TV } from '../constants/tvTheme';
 
 export default function TVRootLayout(): React.JSX.Element {
   const restore = useAuthStore(s => s.restore);
-  const loadDownloads = useDownloadStore(s => s.loadFromStorage);
   const restoreSettings = useSettingsStore(s => s.restore);
   const restoreHistory = useHistoryStore(s => s.restore);
   const lastBackRef = useRef(0);
@@ -22,7 +21,6 @@ export default function TVRootLayout(): React.JSX.Element {
 
   useEffect(() => {
     restore();
-    loadDownloads();
     restoreSettings();
     restoreHistory();
 
@@ -46,7 +44,7 @@ export default function TVRootLayout(): React.JSX.Element {
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#121212' }}>
+    <View style={{ flex: 1, backgroundColor: TV.color.bg }}>
       <Stack
         screenOptions={{
           headerShown: false,
@@ -59,7 +57,6 @@ export default function TVRootLayout(): React.JSX.Element {
         <Stack.Screen name="live" />
         <Stack.Screen name="search" />
         <Stack.Screen name="settings" />
-        <Stack.Screen name="downloads" />
         <Stack.Screen name="history" />
         <Stack.Screen name="ranking" />
       </Stack>

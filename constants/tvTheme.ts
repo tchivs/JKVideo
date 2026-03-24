@@ -36,12 +36,12 @@ export const TV = {
   },
   // ── 间距 ──
   space: {
-    xs: 4,
-    sm: 8,
-    md: 12,
-    lg: 16,
-    xl: 20,
-    xxl: 32,
+    xs: 8,
+    sm: 12,
+    md: 16,
+    lg: 24,
+    xl: 32,
+    xxl: 48,
   },
   // ── 圆角 ──
   radius: {
@@ -54,14 +54,14 @@ export const TV = {
   },
   // ── 字号 ──
   font: {
-    xs: 10,
-    sm: 11,
-    md: 12,
-    base: 13,
-    lg: 14,
-    xl: 15,
-    title: 18,
-    heading: 20,
+    xs: 12,
+    sm: 14,
+    md: 16,
+    base: 18,
+    lg: 20,
+    xl: 24,
+    title: 28,
+    heading: 32,
   },
   // ── 动画 ──
   timing: {
@@ -77,13 +77,13 @@ export const TV = {
   // ── 布局 ──
   layout: {
     /** 网格列间距 */
-    gridGap: 8,
+    gridGap: 16,
     /** 列表内边距 */
-    listPadding: 8,
-    /** 内容区水平内边距 */
-    contentPaddingH: 16,
+    listPadding: 16,
+    /** 内容区水平内边距（TV 过扫描安全区，建议 48+） */
+    contentPaddingH: 48,
     /** Header 垂直内边距 */
-    headerPaddingV: 12,
+    headerPaddingV: 16,
   },
   // ── 侧边栏 ──
   sidebar: {

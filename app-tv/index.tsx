@@ -145,11 +145,12 @@ export default function TVHomeScreen(): React.JSX.Element {
             ]}
             onPress={() => handleTabChange(tab.key)}
             scaleFactor={1}
+            accessibilityLabel={tab.label}
           >
             <Ionicons
               name={tab.icon as any}
               size={20}
-              color={activeTab === tab.key ? '#00AEEC' : '#888'}
+              color={activeTab === tab.key ? TV.color.accent : TV.color.textTertiary}
             />
             <Text
               style={[
@@ -166,8 +167,9 @@ export default function TVHomeScreen(): React.JSX.Element {
           style={styles.sidebarItem}
           onPress={() => router.push('/search' as any)}
           scaleFactor={1}
+          accessibilityLabel="搜索"
         >
-          <Ionicons name="search" size={20} color="#888" />
+          <Ionicons name="search" size={20} color={TV.color.textTertiary} />
           <Text style={styles.sidebarText}>搜索</Text>
         </TVFocusable>
 
@@ -175,8 +177,9 @@ export default function TVHomeScreen(): React.JSX.Element {
           style={styles.sidebarItem}
           onPress={() => router.push('/history' as any)}
           scaleFactor={1}
+          accessibilityLabel="历史记录"
         >
-          <Ionicons name="time-outline" size={20} color="#888" />
+          <Ionicons name="time-outline" size={20} color={TV.color.textTertiary} />
           <Text style={styles.sidebarText}>历史</Text>
         </TVFocusable>
 
@@ -184,8 +187,9 @@ export default function TVHomeScreen(): React.JSX.Element {
           style={styles.sidebarItem}
           onPress={() => router.push('/ranking' as any)}
           scaleFactor={1}
+          accessibilityLabel="排行榜"
         >
-          <Ionicons name="trophy-outline" size={20} color="#888" />
+          <Ionicons name="trophy-outline" size={20} color={TV.color.textTertiary} />
           <Text style={styles.sidebarText}>排行</Text>
         </TVFocusable>
 
@@ -197,8 +201,9 @@ export default function TVHomeScreen(): React.JSX.Element {
             router.push('/settings' as any)
           }
           scaleFactor={1}
+          accessibilityLabel="设置"
         >
-          <Ionicons name="settings-outline" size={20} color="#888" />
+          <Ionicons name="settings-outline" size={20} color={TV.color.textTertiary} />
           <Text style={styles.sidebarText}>设置</Text>
         </TVFocusable>
 
@@ -208,6 +213,7 @@ export default function TVHomeScreen(): React.JSX.Element {
             if (!isLoggedIn) setShowLogin(true);
           }}
           scaleFactor={1}
+          accessibilityLabel={isLoggedIn ? '已登录' : '登录'}
         >
           {isLoggedIn && face ? (
             <Image
@@ -215,7 +221,7 @@ export default function TVHomeScreen(): React.JSX.Element {
               style={styles.avatar}
             />
           ) : (
-            <Ionicons name="person-circle-outline" size={24} color="#888" />
+            <Ionicons name="person-circle-outline" size={24} color={TV.color.textTertiary} />
           )}
           <Text style={styles.sidebarText}>
             {isLoggedIn ? '已登录' : '登录'}
@@ -242,10 +248,24 @@ export default function TVHomeScreen(): React.JSX.Element {
             ListFooterComponent={
               loading ? (
                 <ActivityIndicator
-                  color="#00AEEC"
+                  color={TV.color.accent}
                   style={styles.loader}
                 />
               ) : null
+            }
+            ListEmptyComponent={
+              loading ? (
+                <TVSkeleton columns={NUM_COLUMNS} count={NUM_COLUMNS * 2} />
+              ) : (
+                <View style={styles.emptyContainer}>
+                  <Ionicons name="cloud-offline-outline" size={64} color={TV.color.textTertiary} />
+                  <Text style={styles.emptyText}>内容加载失败</Text>
+                  <Text style={styles.emptyHint}>请检查网络状态后重试</Text>
+                  <TVFocusable onPress={() => load(true)} style={styles.retryBtn} scaleFactor={1.05}>
+                    <Text style={styles.retryText}>重试</Text>
+                  </TVFocusable>
+                </View>
+              )
             }
           />
         ) : (
@@ -289,10 +309,24 @@ export default function TVHomeScreen(): React.JSX.Element {
             ListFooterComponent={
               liveLoading ? (
                 <ActivityIndicator
-                  color="#00AEEC"
+                  color={TV.color.accent}
                   style={styles.loader}
                 />
               ) : null
+            }
+            ListEmptyComponent={
+              liveLoading ? (
+                <TVSkeleton columns={NUM_COLUMNS} count={NUM_COLUMNS * 2} />
+              ) : (
+                <View style={styles.emptyContainer}>
+                  <Ionicons name="cloud-offline-outline" size={64} color={TV.color.textTertiary} />
+                  <Text style={styles.emptyText}>直播流获取失败</Text>
+                  <Text style={styles.emptyHint}>可能是网络受到限制，请稍后重试</Text>
+                  <TVFocusable onPress={() => liveLoad(true, liveAreaId)} style={styles.retryBtn} scaleFactor={1.05}>
+                    <Text style={styles.retryText}>重试</Text>
+                  </TVFocusable>
+                </View>
+              )
             }
           />
         )}
@@ -389,7 +423,38 @@ const styles = StyleSheet.create({
     color: TV.color.textSecondary,
   },
   areaChipTextActive: {
-    color: TV.color.accent,
+    fontSize: 14,
+    color: '#111',
     fontWeight: '600',
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 100,
+    gap: TV.space.md,
+  },
+  emptyText: {
+    color: TV.color.textSecondary,
+    fontSize: TV.font.lg,
+    fontWeight: '600',
+  },
+  emptyHint: {
+    color: TV.color.textTertiary,
+    fontSize: TV.font.md,
+  },
+  retryBtn: {
+    marginTop: TV.space.lg,
+    paddingHorizontal: TV.space.xl,
+    paddingVertical: TV.space.md,
+    backgroundColor: TV.color.surfaceAlt,
+    borderRadius: TV.radius.md,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  retryText: {
+    color: TV.color.textPrimary,
+    fontSize: TV.font.md,
+    fontWeight: '500',
   },
 });

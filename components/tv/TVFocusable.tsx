@@ -41,8 +41,8 @@ export function TVFocusable({
 }: TVFocusableProps): React.JSX.Element {
   // scale 动画 — native driver
   const scaleAnim = useRef(new Animated.Value(0)).current;
-  // border 动画 — JS driver（borderColor 不支持 native）
-  const borderAnim = useRef(new Animated.Value(0)).current;
+  // focus 动画 — native driver (opacity)
+  const focusAnim = useRef(new Animated.Value(0)).current;
 
   const easeOut = Easing.out(Easing.quad);
 
@@ -54,14 +54,14 @@ export function TVFocusable({
         easing: easeOut,
         useNativeDriver: true,
       }),
-      Animated.timing(borderAnim, {
+      Animated.timing(focusAnim, {
         toValue: 1,
         duration: TV.timing.focusIn,
         easing: easeOut,
-        useNativeDriver: false,
+        useNativeDriver: true,
       }),
     ]).start();
-  }, [scaleAnim, borderAnim]);
+  }, [scaleAnim, focusAnim]);
 
   const handleBlur = useCallback(() => {
     Animated.parallel([
@@ -71,30 +71,33 @@ export function TVFocusable({
         easing: easeOut,
         useNativeDriver: true,
       }),
-      Animated.timing(borderAnim, {
+      Animated.timing(focusAnim, {
         toValue: 0,
         duration: TV.timing.focusOut,
         easing: easeOut,
-        useNativeDriver: false,
+        useNativeDriver: true,
       }),
     ]).start();
-  }, [scaleAnim, borderAnim]);
+  }, [scaleAnim, focusAnim]);
 
   const animatedScale = scaleAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [1, scaleFactor],
   });
 
+  const flattenedStyle = StyleSheet.flatten(style) || {};
+  const borderRadius = (focusStyle?.borderRadius as number) || (flattenedStyle.borderRadius as number) || 0;
+  // 提取原始 border 信息以防用户自定义
+  const borderWidth = (flattenedStyle.borderWidth as number) || 2;
+
+  // 主容器不再响应边框颜色渐变，将原本预留透明边框的空间保留
   return (
     <Animated.View
       style={[
         style,
         {
           transform: [{ scale: animatedScale }],
-          borderColor: borderAnim.interpolate({
-            inputRange: [0, 1],
-            outputRange: ['transparent', borderColor],
-          }),
+          borderColor: 'transparent', // 永远透明，由 overlay 体现真实边框
         },
         focusStyle && {
           ...Object.fromEntries(
@@ -115,6 +118,19 @@ export function TVFocusable({
         style={{ flex: undefined }}
       >
         {children}
+        {/* 利用 GPU 加速的绝对定位边框 */}
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              borderWidth,
+              borderColor,
+              borderRadius,
+              opacity: focusAnim,
+            },
+          ]}
+        />
       </Pressable>
     </Animated.View>
   );
