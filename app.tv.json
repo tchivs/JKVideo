@@ -2,7 +2,7 @@
   "expo": {
     "name": "JKVideo TV",
     "slug": "jkvideo-tv",
-    "version": "1.0.6",
+    "version": "1.0.8",
     "scheme": "bilibili-tv",
     "orientation": "landscape",
     "icon": "./assets/icon.png",
@@ -22,7 +22,12 @@
     },
     "plugins": [
       "./plugins/withAndroidTV.js",
-      ["expo-router", { "root": "./app-tv" }],
+      [
+        "expo-router",
+        {
+          "root": "./app-tv"
+        }
+      ],
       "react-native-video",
       "expo-screen-orientation"
     ],
