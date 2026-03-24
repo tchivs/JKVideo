@@ -5,6 +5,7 @@ import pako from 'pako';
 import type { VideoItem, Comment, PlayUrlResponse, QRCodeInfo, VideoShotData, DanmakuItem, LiveRoom, LiveRoomDetail, LiveAnchorInfo, LiveStreamInfo } from './types';
 import { signWbi } from '../utils/wbi';
 import { parseDanmakuXml } from '../utils/danmaku';
+import { useSettingsStore } from '../store/settingsStore';
 
 const isWeb = Platform.OS === 'web';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -116,10 +117,23 @@ export async function getVideoDetail(bvid: string): Promise<VideoItem> {
 
 export async function getPlayUrl(bvid: string, cid: number, qn = 64): Promise<PlayUrlResponse> {
   const isAndroid = Platform.OS === 'android';
-  // 1488 = 16(DASH)|64(HDR)|128(4K)|256(杜比全景声)|1024(杜比视界)
-  const FNVAL_ANDROID = 16 | 64 | 128 | 256 | 1024;
+  
+  // 基础参数 (DASH, 4K, Atmos, DolbyVision 等)
+  const FNVAL_BASE = 16 | 128 | 256 | 512 | 1024;
+  let fnval = FNVAL_BASE;
+  const codec = useSettingsStore.getState().preferredCodec;
+  
+  // 若允许 HEVC (64)
+  if (codec === 'auto' || codec === 'hevc' || codec === 'av1') {
+    fnval |= 64; 
+  }
+  // 若允许 AV1 (2048)
+  if (codec === 'auto' || codec === 'av1') {
+    fnval |= 2048;
+  }
+
   const params = isAndroid
-    ? { bvid, cid, qn, fnval: FNVAL_ANDROID, fourk: 1 }
+    ? { bvid, cid, qn, fnval, fourk: 1 }
     : { bvid, cid, qn, fnval: 0, platform: 'html5', fourk: 1 };
   const res = await api.get('/x/player/playurl', { params });
   return res.data.data as PlayUrlResponse;
@@ -319,6 +333,23 @@ export async function getLiveStreamUrl(roomId: number, qn = 10000): Promise<Live
   }
 }
 
+export interface SearchHotItem {
+  keyword: string;
+  status: string;
+  name_type: string;
+  show_name: string;
+  icon: string;
+}
+
+export async function getSearchSquare(): Promise<SearchHotItem[]> {
+  try {
+    const res = await api.get('/x/web-interface/search/square', { params: { limit: 10 } });
+    return res.data?.data?.trending?.list || [];
+  } catch {
+    return [];
+  }
+}
+
 function parseDuration(s: string): number {
   const parts = s.split(':').map(Number);
   return parts.length === 2 ? parts[0] * 60 + parts[1] : parts[0] * 3600 + parts[1] * 60 + parts[2];
@@ -442,4 +473,121 @@ export async function getFollowedLiveRooms(): Promise<LiveRoom[]> {
     area_name: r.area_v2_name ?? '',
     parent_area_name: r.area_v2_parent_name ?? '',
   }));
+}
+
+function parseDurationText(text: string): number {
+  if (!text) return 0;
+  const parts = text.split(':').map(Number);
+  if (parts.length === 2) return (parts[0] || 0) * 60 + (parts[1] || 0);
+  if (parts.length === 3) return (parts[0] || 0) * 3600 + (parts[1] || 0) * 60 + (parts[2] || 0);
+  return 0;
+}
+
+export async function getDynamicFeeds(offset = ''): Promise<{ items: VideoItem[]; nextOffset: string }> {
+  try {
+    const res = await api.get('/x/polymer/web-dynamic/v1/feed/all', { params: { offset, type: 'video' } });
+    const data = res.data?.data;
+    const items = data?.items ?? [];
+    const nextOffset = data?.offset ?? '';
+    
+    const vItems: VideoItem[] = items
+      .filter((it: any) => it.type === 'DYNAMIC_TYPE_AV')
+      .map((it: any) => {
+        const archive = it.modules?.module_dynamic?.major?.archive;
+        const author = it.modules?.module_author;
+        if (!archive) return null;
+        return {
+          bvid: archive.bvid,
+          aid: parseInt(archive.aid, 10) || 0,
+          title: archive.title,
+          pic: archive.cover,
+          owner: {
+            mid: author?.mid ?? 0,
+            name: author?.name ?? '',
+            face: author?.face ?? '',
+          },
+          stat: { view: parseFormatNumber(archive.stat?.play), like: parseFormatNumber(archive.stat?.like), reply: 0, favorite: 0, danmaku: parseFormatNumber(archive.stat?.danmaku), coin: 0 },
+          duration: archive.duration_text ? parseDurationText(archive.duration_text) : 0,
+          desc: archive.desc ?? '',
+        } as VideoItem;
+      })
+      .filter(Boolean);
+      
+    return { items: vItems, nextOffset };
+  } catch (e) {
+    console.warn('getDynamicFeeds failed', e);
+    return { items: [], nextOffset: '' };
+  }
+}
+
+function parseFormatNumber(str: string): number {
+  if (!str) return 0;
+  if (typeof str === 'number') return str;
+  if (str.includes('万')) return parseFloat(str) * 10000;
+  return parseInt(str, 10) || 0;
+}
+
+export async function getFavorites(pn = 1, ps = 20): Promise<{ items: VideoItem[]; hasMore: boolean }> {
+  try {
+    const uidRes = await api.get('/x/web-interface/nav');
+    const mid = uidRes.data?.data?.mid;
+    if (!mid) throw new Error('Not logged in');
+    
+    const foldersRes = await api.get('/x/v3/fav/folder/created/list/all', { params: { up_mid: mid } });
+    const folders = foldersRes.data?.data?.list ?? [];
+    if (folders.length === 0) return { items: [], hasMore: false };
+    const folderId = folders[0].id;
+    
+    const res = await api.get('/x/v3/fav/resource/list', { params: { media_id: folderId, pn, ps, keyword: '', order: 'mtime', type: 0, tid: 0, platform: 'web' } });
+    const medias = res.data?.data?.medias ?? [];
+    const hasMore = res.data?.data?.has_more ?? false;
+    
+    const items = medias.map((m: any) => ({
+      bvid: m.bvid,
+      aid: m.id,
+      title: m.title,
+      pic: m.cover,
+      owner: {
+        mid: m.upper?.mid ?? 0,
+        name: m.upper?.name ?? '',
+        face: m.upper?.face ?? '',
+      },
+      stat: { view: m.cnt_info?.play ?? 0, like: 0, reply: 0, favorite: m.cnt_info?.collect ?? 0, danmaku: m.cnt_info?.danmaku ?? 0, coin: 0 },
+      duration: m.duration ?? 0,
+      desc: m.intro ?? '',
+    } as VideoItem));
+    
+    return { items, hasMore };
+  } catch (e) {
+    console.warn('getFavorites err', e);
+    return { items: [], hasMore: false };
+  }
+}
+
+export async function getBangumiFollows(pn = 1, ps = 20): Promise<{ items: VideoItem[]; hasMore: boolean }> {
+  try {
+    const uidRes = await api.get('/x/web-interface/nav');
+    const mid = uidRes.data?.data?.mid;
+    if (!mid) throw new Error('Not logged in');
+    
+    const res = await api.get('/x/space/bangumi/follow/list', { params: { type: 1, pn, ps, vmid: mid } });
+    const list = res.data?.data?.list ?? [];
+    const total = res.data?.data?.total ?? 0;
+    
+    const items = list.map((b: any) => ({
+      bvid: b.new_ep?.bvid || '',
+      aid: 0,
+      title: b.title,
+      pic: b.cover,
+      owner: { mid: 0, name: b.new_ep?.index_show || '最新一集', face: '' },
+      stat: { view: 0, like: 0, reply: 0, favorite: 0, danmaku: 0, coin: 0 },
+      duration: 0,
+      desc: b.evaluate || '',
+    } as VideoItem));
+    
+    return { items, hasMore: pn * ps < total };
+  } catch (e) {
+    console.warn('getBangumiFollowerr', e);
+    return { items: [], hasMore: false };
+  }
 }
