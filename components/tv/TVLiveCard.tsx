@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,8 @@ import type { LiveRoom } from '../../services/types';
 import { formatCount } from '../../utils/format';
 import { proxyImageUrl } from '../../utils/imageUrl';
 import { TVFocusable } from './TVFocusable';
-import { TV } from '../../constants/tvTheme';
+import { useTVLayout } from '../../hooks/useTVLayout';
+import { useTVTheme } from '../../hooks/useTVTheme';
 
 interface Props {
   item: LiveRoom;
@@ -22,9 +23,7 @@ interface Props {
   cardWidth?: number;
 }
 
-/**
- * TV 版直播卡片。聚焦时显示高亮边框。
- */
+type TVTheme = ReturnType<typeof useTVTheme>;
 export const TVLiveCard = React.memo(function TVLiveCard({
   item,
   onPress,
@@ -32,35 +31,37 @@ export const TVLiveCard = React.memo(function TVLiveCard({
   onFocusChange,
   cardWidth: propCardWidth,
 }: Props) {
+  const tv = useTVTheme();
+  const styles = useMemo(() => createStyles(tv), [tv]);
   const { width } = useWindowDimensions();
-  const NUM_COLUMNS = 5;
-  const FULL_CARD_WIDTH =
-    (width - sidebarWidth - TV.layout.listPadding * 2 - TV.layout.gridGap * (NUM_COLUMNS - 1)) /
-    NUM_COLUMNS;
-  const CARD_WIDTH = propCardWidth ?? FULL_CARD_WIDTH;
+  const { gridColumns } = useTVLayout();
+  const fullCardWidth =
+    (width - sidebarWidth - tv.layout.listPadding * 2 - tv.layout.gridGap * (gridColumns - 1)) /
+    gridColumns;
+  const cardWidth = propCardWidth ?? fullCardWidth;
 
   return (
     <TVFocusable
       onPress={onPress}
       onFocus={() => onFocusChange?.(true)}
       onBlur={() => onFocusChange?.(false)}
-      style={[styles.card, { width: CARD_WIDTH }]}
-      focusStyle={{ borderRadius: TV.radius.md }}
-      accessibilityLabel={`${item.uname} \u76f4\u64ad\u4e2d: ${item.title}`}
+      style={[styles.card, { width: cardWidth }]}
+      focusStyle={{ borderRadius: tv.radius.md }}
+      accessibilityLabel={`${item.uname} 直播中: ${item.title}`}
     >
       <View style={styles.thumbContainer}>
         <Image
           source={{ uri: proxyImageUrl(item.cover) }}
-          style={[styles.thumb, { width: CARD_WIDTH, height: CARD_WIDTH * 0.5625 }]}
+          style={[styles.thumb, { width: cardWidth, height: cardWidth * 0.5625 }]}
           resizeMode="cover"
           fadeDuration={200}
         />
         <View style={styles.liveBadge}>
           <LivePulse />
-          <Text style={styles.liveBadgeText}>{'\u76f4\u64ad\u4e2d'}</Text>
+          <Text style={styles.liveBadgeText}>直播中</Text>
         </View>
         <View style={styles.meta}>
-          <Ionicons name="people" size={12} color={TV.color.white} />
+          <Ionicons name="people" size={12} color={tv.color.white} />
           <Text style={styles.metaText}>{formatCount(item.online)}</Text>
         </View>
         <View style={styles.areaBadge}>
@@ -86,72 +87,73 @@ export const TVLiveCard = React.memo(function TVLiveCard({
   );
 });
 
-const styles = StyleSheet.create({
-  card: {
-    marginBottom: TV.space.sm,
-    backgroundColor: TV.color.surface,
-    borderRadius: TV.radius.md,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  thumbContainer: { position: 'relative' },
-  thumb: {
-    backgroundColor: TV.color.placeholder,
-  },
-  liveBadge: {
-    position: 'absolute',
-    top: TV.space.xs,
-    left: TV.space.xs,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    borderRadius: TV.radius.sm,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  liveBadgeText: { color: TV.color.white, fontSize: TV.font.sm, fontWeight: '500' },
-  meta: {
-    position: 'absolute',
-    bottom: TV.space.xs,
-    left: TV.space.xs,
-    paddingHorizontal: 5,
-    borderRadius: TV.radius.sm,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  metaText: { fontSize: TV.font.sm, color: TV.color.white },
-  areaBadge: {
-    position: 'absolute',
-    bottom: TV.space.xs,
-    right: TV.space.xs,
-    borderRadius: TV.radius.sm,
-    paddingHorizontal: 5,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-  },
-  areaText: { color: TV.color.white, fontSize: TV.font.sm },
-  info: { padding: TV.space.sm },
-  title: {
-    fontSize: TV.font.lg,
-    color: TV.color.textPrimary,
-    lineHeight: 20,
-    marginBottom: TV.space.xs,
-  },
-  ownerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: 2,
-  },
-  avatar: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: TV.color.placeholder,
-  },
-  owner: { fontSize: TV.font.md, color: TV.color.textTertiary, flex: 1 },
-});
-
+function createStyles(tv: TVTheme) {
+  return StyleSheet.create({
+    card: {
+      marginBottom: tv.space.sm,
+      backgroundColor: tv.color.surface,
+      borderRadius: tv.radius.md,
+      overflow: 'hidden',
+      borderWidth: 2,
+      borderColor: 'transparent',
+    },
+    thumbContainer: { position: 'relative' },
+    thumb: {
+      backgroundColor: tv.color.placeholder,
+    },
+    liveBadge: {
+      position: 'absolute',
+      top: tv.space.xs,
+      left: tv.space.xs,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      borderRadius: tv.radius.sm,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+    },
+    liveBadgeText: { color: tv.color.white, fontSize: tv.font.sm, fontWeight: '500' },
+    meta: {
+      position: 'absolute',
+      bottom: tv.space.xs,
+      left: tv.space.xs,
+      paddingHorizontal: 5,
+      borderRadius: tv.radius.sm,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+    },
+    metaText: { fontSize: tv.font.sm, color: tv.color.white },
+    areaBadge: {
+      position: 'absolute',
+      bottom: tv.space.xs,
+      right: tv.space.xs,
+      borderRadius: tv.radius.sm,
+      paddingHorizontal: 5,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+    },
+    areaText: { color: tv.color.white, fontSize: tv.font.sm },
+    info: { padding: tv.space.sm },
+    title: {
+      fontSize: tv.font.lg,
+      color: tv.color.textPrimary,
+      lineHeight: Math.round(tv.font.lg * 1.15),
+      marginBottom: tv.space.xs,
+    },
+    ownerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      marginTop: 2,
+    },
+    avatar: {
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      backgroundColor: tv.color.placeholder,
+    },
+    owner: { fontSize: tv.font.md, color: tv.color.textTertiary, flex: 1 },
+  });
+}

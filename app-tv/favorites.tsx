@@ -16,9 +16,11 @@ import { getFavorites } from '../services/bilibili';
 import { useAuthStore } from '../store/authStore';
 import type { VideoItem } from '../services/types';
 import { TV } from '../constants/tvTheme';
+import { useTVLayout } from '../hooks/useTVLayout';
 
 export default function TVFavoritesScreen() {
   const router = useRouter();
+  const { gridColumns, contentPaddingH, headerTopPadding } = useTVLayout();
   const { isLoggedIn } = useAuthStore();
   const [items, setItems] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -73,7 +75,7 @@ export default function TVFavoritesScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingHorizontal: contentPaddingH, paddingTop: headerTopPadding }]}>
         <TVFocusable
           onPress={() => router.back()}
           style={styles.backBtn}
@@ -94,7 +96,7 @@ export default function TVFavoritesScreen() {
         />
       ) : items.length === 0 ? (
         loading ? (
-          <TVSkeleton columns={5} count={10} />
+          <TVSkeleton columns={gridColumns} count={10} />
         ) : (
           <TVEmptyState
             title="暂无收藏记录"
@@ -108,7 +110,7 @@ export default function TVFavoritesScreen() {
           data={items}
           keyExtractor={(item, index) => `${item.bvid}-${index}`}
           renderItem={renderItem}
-          numColumns={5}
+          numColumns={gridColumns}
           columnWrapperStyle={styles.gridRow}
           contentContainerStyle={styles.listContent}
           windowSize={5}

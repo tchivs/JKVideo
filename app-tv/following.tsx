@@ -17,9 +17,11 @@ import { useAuthStore } from '../store/authStore';
 import { usePlaylistStore } from '../store/playlistStore';
 import type { VideoItem } from '../services/types';
 import { TV } from '../constants/tvTheme';
+import { useTVLayout } from '../hooks/useTVLayout';
 
 export default function TVFollowingScreen() {
   const router = useRouter();
+  const { gridColumns, contentPaddingH, headerTopPadding } = useTVLayout();
   const { setPlaylist } = usePlaylistStore();
   const { isLoggedIn } = useAuthStore();
   const [items, setItems] = useState<VideoItem[]>([]);
@@ -83,7 +85,7 @@ export default function TVFollowingScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingHorizontal: contentPaddingH, paddingTop: headerTopPadding }]}>
         <TVFocusable
           onPress={() => router.back()}
           style={styles.backBtn}
@@ -104,7 +106,7 @@ export default function TVFollowingScreen() {
         />
       ) : items.length === 0 ? (
         loading ? (
-          <TVSkeleton columns={5} count={10} />
+          <TVSkeleton columns={gridColumns} count={10} />
         ) : (
           <TVEmptyState
             title="暂无追番记录"
@@ -118,7 +120,7 @@ export default function TVFollowingScreen() {
           data={items}
           keyExtractor={(item, index) => `${item.bvid}-${index}`}
           renderItem={renderItem}
-          numColumns={5}
+          numColumns={gridColumns}
           columnWrapperStyle={styles.gridRow}
           contentContainerStyle={styles.listContent}
           windowSize={5}

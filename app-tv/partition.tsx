@@ -15,13 +15,13 @@ import { getRegionVideos, BILI_REGIONS } from '../services/bilibili';
 import { usePlaylistStore } from '../store/playlistStore';
 import type { VideoItem } from '../services/types';
 import { TV } from '../constants/tvTheme';
-
-const NUM_COLUMNS = 5;
-const SIDEBAR_W = 140;
+import { useTVLayout } from '../hooks/useTVLayout';
 
 export default function PartitionScreen() {
   const router = useRouter();
+  const { gridColumns, headerTopPadding, isCompact } = useTVLayout();
   const { setPlaylist } = usePlaylistStore();
+  const regionSidebarWidth = isCompact ? 92 : 140;
   const [selectedTid, setSelectedTid] = useState(BILI_REGIONS[0].tid);
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,9 +59,9 @@ export default function PartitionScreen() {
   }, [hasMore, loading, page, selectedTid, fetchVideos]);
 
   const renderItem = useCallback(({ item, index }: { item: VideoItem; index: number }) => (
-    <TVVideoCard
-      item={item}
-      sidebarWidth={SIDEBAR_W}
+      <TVVideoCard
+        item={item}
+        sidebarWidth={regionSidebarWidth}
       onPress={() => {
         setPlaylist(videos, index, hasMore, async (currentLength) => {
           const nextPn = Math.floor(currentLength / 20) + 1;
@@ -71,14 +71,14 @@ export default function PartitionScreen() {
         router.push(`/video/${item.bvid}` as any);
       }}
     />
-  ), [router, videos, hasMore, selectedTid, setPlaylist]);
+  ), [regionSidebarWidth, router, videos, hasMore, selectedTid, setPlaylist]);
 
   const selected = BILI_REGIONS.find(r => r.tid === selectedTid);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: headerTopPadding }]}>
       {/* 分区侧边栏 */}
-      <View style={styles.sidebar}>
+      <View style={[styles.sidebar, { width: regionSidebarWidth, paddingTop: isCompact ? TV.space.lg : TV.space.xl }]}>
         <Text style={styles.sidebarTitle}>分区</Text>
         <FlatList
           data={BILI_REGIONS as any}
@@ -103,11 +103,11 @@ export default function PartitionScreen() {
       </View>
 
       {/* 内容区 */}
-      <View style={styles.content}>
+      <View style={[styles.content, { paddingTop: isCompact ? TV.space.lg : TV.space.xl, paddingHorizontal: isCompact ? TV.space.md : TV.space.xl }]}>
         <Text style={styles.title}>{selected?.icon} {selected?.name}</Text>
 
         {loading && videos.length === 0 ? (
-          <TVSkeleton count={10} columns={NUM_COLUMNS} sidebarWidth={SIDEBAR_W} />
+          <TVSkeleton count={10} columns={gridColumns} sidebarWidth={regionSidebarWidth} />
         ) : videos.length === 0 ? (
           <TVEmptyState icon="albums-outline" title="暂无内容" hint="该分区暂时没有视频" />
         ) : (
@@ -115,7 +115,7 @@ export default function PartitionScreen() {
             data={videos}
             renderItem={renderItem}
             keyExtractor={item => item.bvid}
-            numColumns={NUM_COLUMNS}
+            numColumns={gridColumns}
             columnWrapperStyle={styles.row}
             contentContainerStyle={styles.listContent}
             onEndReached={loadMore}
@@ -137,12 +137,9 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     backgroundColor: 'transparent',
-    paddingTop: TV.layout.headerPaddingV + TV.space.xl,
   },
   sidebar: {
-    width: SIDEBAR_W,
     backgroundColor: 'transparent',
-    paddingTop: TV.space.xl,
     paddingHorizontal: TV.space.sm,
   },
   sidebarTitle: {
@@ -177,8 +174,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingTop: TV.space.xl,
-    paddingHorizontal: TV.space.xl,
   },
   title: {
     color: TV.color.white,

@@ -30,6 +30,7 @@ import { TVFocusable } from './TVFocusable';
 import { useSettingsStore } from '../../store/settingsStore';
 import { getSponsorSegments, type SponsorSegment } from '../../services/bilibili';
 import { TV } from '../../constants/tvTheme';
+import { useTVTheme } from '../../hooks/useTVTheme';
 
 const HIDE_DELAY = 5000;
 const SEEK_STEP = 10; // 秒
@@ -140,6 +141,7 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
     }: Props,
     ref,
   ) {
+    const tv = useTVTheme();
     const { width: SCREEN_W, height: SCREEN_H } = useWindowDimensions();
     // TV 始终横屏，播放器取满宽，高度按 16:9
     const VIDEO_H = isFullscreen ? SCREEN_H : SCREEN_W * 0.5625;
@@ -303,7 +305,7 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
         setResolvedUrl(playData.durl?.[0]?.url);
         setError(null);
       }
-    }, [playData, currentQn]);
+    }, [playData, currentQn, isDash]);
 
     useEffect(() => {
       durationRef.current = duration;
@@ -382,7 +384,7 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
       return () => {
         if (hideTimer.current) clearTimeout(hideTimer.current);
       };
-    }, []);
+    }, [resetHideTimer]);
 
     // D-Pad 快进快退
     const seekForward = useCallback(() => {
@@ -579,7 +581,7 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
                   <Ionicons name="play-forward" size={18} color="#fff" />
                 </TVFocusable>
 
-                <Text style={styles.timeText}>
+                <Text style={[styles.timeText, { fontSize: tv.font.xs, marginLeft: tv.space.xs }]}> 
                   {formatDuration(Math.floor(currentTime))} / {formatDuration(duration)}
                 </Text>
 
@@ -588,7 +590,7 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
                 {uploader && (
                   <TVFocusable
                     onPress={() => onUploaderPress?.(uploader.mid)}
-                    style={[styles.ctrlBtn, { paddingHorizontal: 8 }]}
+                    style={[styles.ctrlBtn, { paddingHorizontal: Math.max(8, tv.space.xs), paddingVertical: Math.max(5, tv.space.xs - 2), borderRadius: tv.radius.sm }]}
                     scaleFactor={1.1}
                     accessibilityLabel={`UP主：${uploader.name}`}
                   >
@@ -596,29 +598,29 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
                       source={{ uri: uploader.face }} 
                       style={{ width: 24, height: 24, borderRadius: 12, marginRight: 6 }} 
                     />
-                    <Text style={styles.qualityText} numberOfLines={1}>{uploader.name}</Text>
+                    <Text style={[styles.qualityText, { fontSize: tv.font.xs }]} numberOfLines={1}>{uploader.name}</Text>
                   </TVFocusable>
                 )}
 
                 <TVFocusable
                   onPress={() => setShowQuality(true)}
-                  style={styles.ctrlBtn}
+                  style={[styles.ctrlBtn, { paddingHorizontal: tv.space.sm, paddingVertical: Math.max(5, tv.space.xs - 2), borderRadius: tv.radius.sm }]}
                   scaleFactor={1.1}
                 >
-                  <Text style={styles.qualityText}>{currentDesc}</Text>
+                  <Text style={[styles.qualityText, { fontSize: tv.font.xs }]}>{currentDesc}</Text>
                 </TVFocusable>
 
                 <TVFocusable
                   onPress={() => setShowSpeed(true)}
-                  style={styles.ctrlBtn}
+                  style={[styles.ctrlBtn, { paddingHorizontal: tv.space.sm, paddingVertical: Math.max(5, tv.space.xs - 2), borderRadius: tv.radius.sm }]}
                   scaleFactor={1.1}
                 >
-                  <Text style={styles.qualityText}>{speed === 1 ? '倍速' : `${speed}x`}</Text>
+                  <Text style={[styles.qualityText, { fontSize: tv.font.xs }]}>{speed === 1 ? '倍速' : `${speed}x`}</Text>
                 </TVFocusable>
 
                 <TVFocusable
                   onPress={() => setShowDanmaku(!showDanmaku)}
-                  style={styles.ctrlBtn}
+                  style={[styles.ctrlBtn, { paddingHorizontal: tv.space.sm, paddingVertical: Math.max(5, tv.space.xs - 2), borderRadius: tv.radius.sm }]}
                   scaleFactor={1.1}
                   accessibilityLabel={showDanmaku ? '关闭弹幕' : '开启弹幕'}
                 >
@@ -631,7 +633,7 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
 
                 <TVFocusable
                   onPress={() => setShowDanmakuConfig(true)}
-                  style={styles.ctrlBtn}
+                  style={[styles.ctrlBtn, { paddingHorizontal: tv.space.sm, paddingVertical: Math.max(5, tv.space.xs - 2), borderRadius: tv.radius.sm }]}
                   scaleFactor={1.1}
                   accessibilityLabel="弹幕设置"
                 >
@@ -641,7 +643,7 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
                 {hasEpisodes && (
                   <TVFocusable
                     onPress={() => { setShowEpisodes(true); setPaused(true); }}
-                    style={styles.ctrlBtn}
+                    style={[styles.ctrlBtn, { paddingHorizontal: tv.space.sm, paddingVertical: Math.max(5, tv.space.xs - 2), borderRadius: tv.radius.sm }]}
                     scaleFactor={1.1}
                     accessibilityLabel="选集"
                   >
@@ -668,11 +670,11 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
         {showQuality && (
           <View style={styles.qualityOverlay}>
             <View style={styles.qualityList}>
-              <Text style={styles.qualityTitle}>选择清晰度</Text>
+              <Text style={[styles.qualityTitle, { fontSize: tv.font.md, paddingVertical: Math.max(8, tv.space.sm - 2) }]}>选择清晰度</Text>
               {qualities.map(q => (
                 <TVFocusable
                   key={q.qn}
-                  style={styles.qualityItem}
+                  style={[styles.qualityItem, { paddingVertical: Math.max(10, tv.space.sm), paddingHorizontal: tv.space.xs, borderRadius: tv.radius.sm }]}
                   onPress={() => {
                     setShowQuality(false);
                     onQualityChange(q.qn);
@@ -684,6 +686,7 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
                   <Text
                     style={[
                       styles.qualityItemText,
+                      { fontSize: tv.font.sm },
                       q.qn === currentQn && styles.qualityItemActive,
                     ]}
                   >
@@ -695,6 +698,17 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
                   )}
                 </TVFocusable>
               ))}
+              <TVFocusable
+                style={[styles.dmCloseBtn, styles.panelCancelBtn, { marginTop: tv.space.sm, paddingHorizontal: tv.space.lg, paddingVertical: Math.max(6, tv.space.xs), borderRadius: tv.radius.md }]}
+                onPress={() => {
+                  setShowQuality(false);
+                  showAndReset();
+                }}
+                scaleFactor={1}
+                accessibilityLabel="取消清晰度面板"
+              >
+                <Text style={[styles.dmCloseBtnText, { fontSize: tv.font.sm }]}>取消</Text>
+              </TVFocusable>
             </View>
           </View>
         )}
@@ -703,11 +717,11 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
         {showSpeed && (
           <View style={styles.qualityOverlay}>
             <View style={styles.qualityList}>
-              <Text style={styles.qualityTitle}>播放速度</Text>
+              <Text style={[styles.qualityTitle, { fontSize: tv.font.md, paddingVertical: Math.max(8, tv.space.sm - 2) }]}>播放速度</Text>
               {[0.5, 0.75, 1, 1.25, 1.5, 2].map(s => (
                 <TVFocusable
                   key={s}
-                  style={styles.qualityItem}
+                  style={[styles.qualityItem, { paddingVertical: Math.max(10, tv.space.sm), paddingHorizontal: tv.space.xs, borderRadius: tv.radius.sm }]}
                   onPress={() => {
                     setSpeed(s);
                     setShowSpeed(false);
@@ -719,6 +733,7 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
                   <Text
                     style={[
                       styles.qualityItemText,
+                      { fontSize: tv.font.sm },
                       s === speed && styles.qualityItemActive,
                     ]}
                   >
@@ -729,6 +744,17 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
                   )}
                 </TVFocusable>
               ))}
+              <TVFocusable
+                style={[styles.dmCloseBtn, styles.panelCancelBtn, { marginTop: tv.space.sm, paddingHorizontal: tv.space.lg, paddingVertical: Math.max(6, tv.space.xs), borderRadius: tv.radius.md }]}
+                onPress={() => {
+                  setShowSpeed(false);
+                  showAndReset();
+                }}
+                scaleFactor={1}
+                accessibilityLabel="取消倍速面板"
+              >
+                <Text style={[styles.dmCloseBtnText, { fontSize: tv.font.sm }]}>取消</Text>
+              </TVFocusable>
             </View>
           </View>
         )}
@@ -737,19 +763,19 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
         {showDanmakuConfig && (
           <View style={styles.qualityOverlay}>
             <View style={styles.dmConfigPanel}>
-              <Text style={styles.qualityTitle}>弹幕设置</Text>
+              <Text style={[styles.qualityTitle, { fontSize: tv.font.md, paddingVertical: Math.max(8, tv.space.sm - 2) }]}>弹幕设置</Text>
 
               {/* 透明度 */}
-              <Text style={styles.dmConfigLabel}>透明度</Text>
-              <View style={styles.dmConfigRow}>
+              <Text style={[styles.dmConfigLabel, { fontSize: tv.font.xs, marginTop: tv.space.sm, marginBottom: Math.max(4, tv.space.xs - 2) }]}>透明度</Text>
+              <View style={[styles.dmConfigRow, { gap: tv.space.xs }]}>
                 {[0.25, 0.5, 0.75, 1].map(v => (
                   <TVFocusable
                     key={v}
-                    style={[styles.dmChip, dmOpacity === v && styles.dmChipActive]}
+                      style={[styles.dmChip, { paddingHorizontal: tv.space.sm, paddingVertical: Math.max(6, tv.space.xs) }, dmOpacity === v && styles.dmChipActive]}
                     onPress={() => setDmOpacity(v)}
                     scaleFactor={1}
                   >
-                    <Text style={[styles.dmChipText, dmOpacity === v && styles.dmChipTextActive]}>
+                      <Text style={[styles.dmChipText, { fontSize: tv.font.xs }, dmOpacity === v && styles.dmChipTextActive]}>
                       {Math.round(v * 100)}%
                     </Text>
                   </TVFocusable>
@@ -757,18 +783,18 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
               </View>
 
               {/* 字号 */}
-              <Text style={styles.dmConfigLabel}>字号</Text>
-              <View style={styles.dmConfigRow}>
+              <Text style={[styles.dmConfigLabel, { fontSize: tv.font.xs, marginTop: tv.space.sm, marginBottom: Math.max(4, tv.space.xs - 2) }]}>字号</Text>
+              <View style={[styles.dmConfigRow, { gap: tv.space.xs }]}>
                 {([0.7, 1, 1.3] as const).map((v, i) => {
                   const labels = ['小', '标准', '大'];
                   return (
                     <TVFocusable
                       key={v}
-                      style={[styles.dmChip, dmFontScale === v && styles.dmChipActive]}
+                       style={[styles.dmChip, { paddingHorizontal: tv.space.sm, paddingVertical: Math.max(6, tv.space.xs) }, dmFontScale === v && styles.dmChipActive]}
                       onPress={() => setDmFontScale(v)}
                       scaleFactor={1}
                     >
-                      <Text style={[styles.dmChipText, dmFontScale === v && styles.dmChipTextActive]}>
+                       <Text style={[styles.dmChipText, { fontSize: tv.font.xs }, dmFontScale === v && styles.dmChipTextActive]}>
                         {labels[i]}
                       </Text>
                     </TVFocusable>
@@ -777,18 +803,18 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
               </View>
 
               {/* 显示区域 */}
-              <Text style={styles.dmConfigLabel}>显示区域</Text>
-              <View style={styles.dmConfigRow}>
+              <Text style={[styles.dmConfigLabel, { fontSize: tv.font.xs, marginTop: tv.space.sm, marginBottom: Math.max(4, tv.space.xs - 2) }]}>显示区域</Text>
+              <View style={[styles.dmConfigRow, { gap: tv.space.xs }]}>
                 {[0.25, 0.5, 0.75, 1].map(v => {
                   const labels: Record<number, string> = { 0.25: '1/4屏', 0.5: '半屏', 0.75: '3/4屏', 1: '全屏' };
                   return (
                     <TVFocusable
                       key={v}
-                      style={[styles.dmChip, dmAreaRatio === v && styles.dmChipActive]}
+                       style={[styles.dmChip, { paddingHorizontal: tv.space.sm, paddingVertical: Math.max(6, tv.space.xs) }, dmAreaRatio === v && styles.dmChipActive]}
                       onPress={() => setDmAreaRatio(v)}
                       scaleFactor={1}
                     >
-                      <Text style={[styles.dmChipText, dmAreaRatio === v && styles.dmChipTextActive]}>
+                       <Text style={[styles.dmChipText, { fontSize: tv.font.xs }, dmAreaRatio === v && styles.dmChipTextActive]}>
                         {labels[v]}
                       </Text>
                     </TVFocusable>
@@ -797,14 +823,14 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
               </View>
 
               {/* 屏蔽类型 */}
-              <Text style={styles.dmConfigLabel}>屏蔽类型</Text>
-              <View style={styles.dmConfigRow}>
+              <Text style={[styles.dmConfigLabel, { fontSize: tv.font.xs, marginTop: tv.space.sm, marginBottom: Math.max(4, tv.space.xs - 2) }]}>屏蔽类型</Text>
+              <View style={[styles.dmConfigRow, { gap: tv.space.xs }]}>
                 {([{ mode: 1, label: '滚动' }, { mode: 5, label: '顶部' }, { mode: 4, label: '底部' }] as const).map(({ mode, label }) => {
                   const isFiltered = dmFilterModes.includes(mode);
                   return (
                     <TVFocusable
                       key={mode}
-                      style={[styles.dmChip, isFiltered && styles.dmChipFiltered]}
+                       style={[styles.dmChip, { paddingHorizontal: tv.space.sm, paddingVertical: Math.max(6, tv.space.xs) }, isFiltered && styles.dmChipFiltered]}
                       onPress={() => {
                         const next = isFiltered
                           ? dmFilterModes.filter((m: number) => m !== mode)
@@ -813,7 +839,7 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
                       }}
                       scaleFactor={1}
                     >
-                      <Text style={[styles.dmChipText, isFiltered && styles.dmChipFilteredText]}>
+                       <Text style={[styles.dmChipText, { fontSize: tv.font.xs }, isFiltered && styles.dmChipFilteredText]}>
                         {isFiltered ? `✗ ${label}` : label}
                       </Text>
                     </TVFocusable>
@@ -823,13 +849,13 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
 
               {/* 关闭按钮 */}
               <TVFocusable
-                style={styles.dmCloseBtn}
+                style={[styles.dmCloseBtn, { marginTop: tv.space.md, paddingHorizontal: tv.space.lg, paddingVertical: Math.max(6, tv.space.xs), borderRadius: tv.radius.md }]}
                 onPress={() => setShowDanmakuConfig(false)}
                 scaleFactor={1}
                 hasTVPreferredFocus
                 accessibilityLabel="关闭弹幕设置"
               >
-                <Text style={styles.dmCloseBtnText}>完成</Text>
+                <Text style={[styles.dmCloseBtnText, { fontSize: tv.font.sm }]}>完成</Text>
               </TVFocusable>
             </View>
           </View>
@@ -840,9 +866,9 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
           <View style={styles.episodeOverlay}>
             <View style={styles.episodeDrawer}>
               <View style={styles.episodeHeader}>
-                <Text style={styles.qualityTitle}>选集 ({episodesProp?.length})</Text>
+                <Text style={[styles.qualityTitle, { fontSize: tv.font.md, paddingVertical: Math.max(8, tv.space.sm - 2) }]}>选集 ({episodesProp?.length})</Text>
                 <TVFocusable
-                  style={styles.epSortBtn}
+                  style={[styles.epSortBtn, { gap: 4, paddingHorizontal: tv.space.sm - 2, paddingVertical: 4, borderRadius: tv.radius.pill }]}
                   onPress={() => setEpReversed(r => !r)}
                   scaleFactor={1.1}
                 >
@@ -853,6 +879,7 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
                   />
                   <Text style={[
                     styles.epSortText,
+                    { fontSize: tv.font.xs },
                     epReversed && { color: TV.color.accent },
                   ]}>
                     {epReversed ? '倒序' : '正序'}
@@ -868,6 +895,7 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
                     key={ep.id}
                     style={[
                       styles.episodeItem,
+                      { gap: tv.space.xs, paddingVertical: Math.max(8, tv.space.sm - 2), paddingHorizontal: tv.space.sm, borderRadius: tv.radius.sm },
                       ep.isCurrent && styles.episodeItemActive,
                     ]}
                     onPress={() => {
@@ -884,6 +912,7 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
                     <Text
                       style={[
                         styles.episodeItemText,
+                        { fontSize: tv.font.sm },
                         ep.isCurrent && styles.episodeItemTextActive,
                       ]}
                       numberOfLines={1}
@@ -894,11 +923,11 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
                 ))}
               </ScrollView>
               <TVFocusable
-                style={styles.dmCloseBtn}
+                style={[styles.dmCloseBtn, { marginTop: tv.space.md, paddingHorizontal: tv.space.lg, paddingVertical: Math.max(6, tv.space.xs), borderRadius: tv.radius.md }]}
                 onPress={() => { setShowEpisodes(false); setPaused(false); }}
                 scaleFactor={1}
               >
-                <Text style={styles.dmCloseBtnText}>关闭</Text>
+                <Text style={[styles.dmCloseBtnText, { fontSize: tv.font.sm }]}>关闭</Text>
               </TVFocusable>
             </View>
           </View>
@@ -906,8 +935,8 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
 
         {/* SponsorBlock 跳过提示 */}
         {sbSkipNotice && (
-          <View style={styles.sbNotice}>
-            <Text style={styles.sbNoticeText}>{sbSkipNotice}</Text>
+          <View style={[styles.sbNotice, { top: tv.space.xl + tv.space.lg, paddingHorizontal: tv.space.xl, paddingVertical: tv.space.sm }]}>
+            <Text style={[styles.sbNoticeText, { fontSize: tv.font.lg }]}>{sbSkipNotice}</Text>
           </View>
         )}
 
@@ -915,18 +944,19 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
         {autoPlayCountdown !== null && (
           <View style={styles.autoPlayOverlay}>
             <View style={styles.autoPlayCard}>
-              <Text style={styles.autoPlayTitle}>即将播放下一集</Text>
+              <Text style={[styles.autoPlayTitle, { fontSize: tv.font.lg, marginBottom: tv.space.md }]}>即将播放下一集</Text>
               <Animated.Text
                 style={[
                   styles.autoPlayCount,
+                  { fontSize: tv.font.heading * 2 },
                   { transform: [{ scale: autoPlayScaleAnim }] },
                 ]}
               >
                 {autoPlayCountdown}
               </Animated.Text>
-              <View style={styles.autoPlayActions}>
+              <View style={[styles.autoPlayActions, { gap: tv.space.md }]}>
                 <TVFocusable
-                  style={styles.autoPlayBtn}
+                  style={[styles.autoPlayBtn, { paddingHorizontal: tv.space.lg, paddingVertical: tv.space.sm, borderRadius: tv.radius.md }]}
                   onPress={() => {
                     cancelAutoPlay();
                     onAutoPlayNext?.();
@@ -934,14 +964,14 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
                   hasTVPreferredFocus
                   scaleFactor={1.1}
                 >
-                  <Text style={styles.autoPlayBtnText}>立即播放</Text>
+                  <Text style={[styles.autoPlayBtnText, { fontSize: tv.font.md }]}>立即播放</Text>
                 </TVFocusable>
                 <TVFocusable
-                  style={[styles.autoPlayBtn, styles.autoPlayBtnCancel]}
+                  style={[styles.autoPlayBtn, styles.autoPlayBtnCancel, { paddingHorizontal: tv.space.lg, paddingVertical: tv.space.sm, borderRadius: tv.radius.md }]}
                   onPress={cancelAutoPlay}
                   scaleFactor={1.1}
                 >
-                  <Text style={styles.autoPlayBtnText}>取消</Text>
+                  <Text style={[styles.autoPlayBtnText, { fontSize: tv.font.md }]}>取消</Text>
                 </TVFocusable>
               </View>
             </View>
@@ -1164,6 +1194,9 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   dmCloseBtnText: { fontSize: 14, color: '#fff', fontWeight: '600' },
+  panelCancelBtn: {
+    backgroundColor: TV.color.surfaceLight,
+  },
   // 选集抽屉
   episodeOverlay: {
     ...StyleSheet.absoluteFillObject,

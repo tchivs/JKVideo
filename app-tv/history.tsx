@@ -16,12 +16,14 @@ import { useHistoryStore, type HistoryItem } from '../store/historyStore';
 import { proxyImageUrl } from '../utils/imageUrl';
 import { formatDuration } from '../utils/format';
 import { TV } from '../constants/tvTheme';
+import { useTVLayout } from '../hooks/useTVLayout';
 
 /**
  * TV 版观看历史页。
  */
 export default function TVHistoryScreen() {
   const router = useRouter();
+  const { gridColumns, contentPaddingH, headerTopPadding } = useTVLayout();
   const { items, clearHistory, progress } = useHistoryStore();
 
   const formatTime = (ms: number): string => {
@@ -86,7 +88,7 @@ export default function TVHistoryScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingHorizontal: contentPaddingH, paddingTop: headerTopPadding }]}>
         <TVFocusable
           onPress={() => router.back()}
           style={styles.backBtn}
@@ -128,7 +130,7 @@ export default function TVHistoryScreen() {
           data={items}
           keyExtractor={item => item.bvid}
           renderItem={renderItem}
-          numColumns={5}
+          numColumns={gridColumns}
           columnWrapperStyle={styles.gridRow}
           contentContainerStyle={styles.listContent}
           windowSize={5}

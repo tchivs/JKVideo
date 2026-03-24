@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Image } from 'react-native';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { coverImageUrl, proxyImageUrl } from '../../utils/imageUrl';
 import { useSettingsStore } from '../../store/settingsStore';
 import { TV } from '../../constants/tvTheme';
+import { useTVLayout } from '../../hooks/useTVLayout';
 import type { VideoItem, LiveRoom } from '../../services/types';
 
 interface Props {
@@ -16,6 +17,7 @@ interface Props {
  */
 export const HeroBackdrop = React.memo(function HeroBackdrop({ activeItem }: Props) {
   const coverQuality = useSettingsStore((s) => s.coverQuality);
+  const { sidebarWidth, heroTitleFontSize, heroTitleLineHeight, heroSubtitleFontSize, isCompact } = useTVLayout();
   const [currentUri, setCurrentUri] = useState<string | null>(null);
   
   // 持有用于淡出入交叉切换的动画钩子
@@ -47,7 +49,7 @@ export const HeroBackdrop = React.memo(function HeroBackdrop({ activeItem }: Pro
         }).start();
       });
     }
-  }, [activeItem, coverQuality, opacity]);
+  }, [activeItem, coverQuality, currentUri, opacity]);
 
   if (!currentUri) {
     return <View style={styles.container} />;
@@ -94,9 +96,27 @@ export const HeroBackdrop = React.memo(function HeroBackdrop({ activeItem }: Pro
       />
       
       {/* 元信息：仅展示于左上空旷域 */}
-      <Animated.View style={[styles.infoContainer, { opacity }]}>
-        <Text style={styles.title} numberOfLines={2}>{title}</Text>
-        <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
+      <Animated.View
+        style={[
+          styles.infoContainer,
+          {
+            opacity,
+            top: isCompact ? 88 : '12%',
+            left: sidebarWidth + TV.space.xl,
+            width: isCompact ? '62%' : '50%',
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.title,
+            { fontSize: heroTitleFontSize, lineHeight: heroTitleLineHeight },
+          ]}
+          numberOfLines={2}
+        >
+          {title}
+        </Text>
+        <Text style={[styles.subtitle, { fontSize: heroSubtitleFontSize }]} numberOfLines={1}>{subtitle}</Text>
       </Animated.View>
     </View>
   );
@@ -123,22 +143,16 @@ const styles = StyleSheet.create({
   },
   infoContainer: {
     position: 'absolute',
-    top: '12%',
-    left: TV.sidebar.width + TV.space.xl, // 严格避开侧栏
-    width: '50%',
   },
   title: {
-    fontSize: 48,
     fontWeight: '900',
     color: TV.color.white,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
-    lineHeight: 64,
     marginBottom: TV.space.md,
   },
   subtitle: {
-    fontSize: 24,
     fontWeight: '500',
     color: '#CCC',
     textShadowColor: 'rgba(0, 0, 0, 0.8)',

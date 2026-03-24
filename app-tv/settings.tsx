@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +15,7 @@ import { useSettingsStore, ALL_SB_CATEGORIES, type SponsorBlockCategory } from '
 import { useHistoryStore } from '../store/historyStore';
 import { useCheckUpdate } from '../hooks/useCheckUpdate';
 import { TV } from '../constants/tvTheme';
+import { useTVTheme } from '../hooks/useTVTheme';
 import { ToastAndroid, ScrollView } from 'react-native';
 
 const QN_OPTIONS = [
@@ -49,6 +51,7 @@ const FILTER_MODES = [
  */
 export default function TVSettingsScreen() {
   const router = useRouter();
+  const tv = useTVTheme();
   const { isLoggedIn, logout } = useAuthStore();
   const {
     coverQuality, setCoverQuality,
@@ -93,48 +96,87 @@ export default function TVSettingsScreen() {
     });
   }, [dmBlockKeywords]);
 
-  const clearCache = useCallback(() => {
-    // 假设有 Image.clearMemoryCache，或回退通知
-    ToastAndroid.show('图片及数据缓存已清除', ToastAndroid.SHORT);
+  const showFeedback = useCallback((message: string): void => {
+    ToastAndroid.show(message, ToastAndroid.SHORT);
   }, []);
 
+  const confirmAction = useCallback(
+    (title: string, message: string, onConfirm: () => void | Promise<void>): void => {
+      Alert.alert(title, message, [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '确认',
+          style: 'destructive',
+          onPress: () => {
+            void Promise.resolve(onConfirm());
+          },
+        },
+      ]);
+    },
+    [],
+  );
+
+  const clearCache = useCallback(() => {
+    confirmAction(
+      '清理缓存',
+      '确认清理图片及请求缓存吗？此操作不会影响账号登录状态。',
+      () => {
+        // 假设有 Image.clearMemoryCache，或回退通知
+        showFeedback('图片及数据缓存已清除');
+      },
+    );
+  }, [confirmAction, showFeedback]);
+
   const handleClearHistory = useCallback(() => {
-    clearHistory();
-    ToastAndroid.show('本地播放历史已清空', ToastAndroid.SHORT);
-  }, [clearHistory]);
+    confirmAction('清空历史', '确认清空本地播放历史吗？该操作无法撤销。', () => {
+      clearHistory();
+      showFeedback('本地播放历史已清空');
+    });
+  }, [clearHistory, confirmAction, showFeedback]);
 
   const handleLogout = async (): Promise<void> => {
-    await logout();
-    router.back();
+    confirmAction('退出登录', '确认退出当前账号吗？', async () => {
+      try {
+        await logout();
+        Alert.alert('已退出登录', '当前账号已成功退出。', [
+          {
+            text: '确定',
+            onPress: () => router.back(),
+          },
+        ]);
+      } catch {
+        Alert.alert('退出失败', '退出登录失败，请稍后重试。');
+      }
+    });
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingHorizontal: tv.layout.contentPaddingH, paddingVertical: tv.layout.headerPaddingV, gap: tv.space.md - 2 }]}>
         <TVFocusable
           onPress={() => router.back()}
-          style={styles.backBtn}
+          style={[styles.backBtn, { padding: tv.space.sm - 2 }]}
           scaleFactor={1.1}
           accessibilityLabel="返回"
         >
           <Ionicons name="chevron-back" size={24} color={TV.color.textSecondary} />
         </TVFocusable>
-        <Text style={styles.headerTitle}>设置</Text>
+        <Text style={[styles.headerTitle, { fontSize: tv.font.title }]}>设置</Text>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={[styles.content, { paddingTop: tv.space.xl }]} showsVerticalScrollIndicator={false}>
         {/* 版本信息 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>版本信息</Text>
+        <View style={[styles.section, { marginBottom: tv.space.lg, paddingHorizontal: tv.space.xl, paddingVertical: tv.space.lg, marginHorizontal: tv.space.xl }]}>
+          <Text style={[styles.sectionLabel, { fontSize: tv.font.base, marginBottom: tv.space.md }]}>版本信息</Text>
           <View style={styles.row}>
-            <Text style={styles.label}>当前版本</Text>
-            <Text style={styles.value}>v{currentVersion}</Text>
+            <Text style={[styles.label, { fontSize: tv.font.xl }]}>当前版本</Text>
+            <Text style={[styles.value, { fontSize: tv.font.xl }]}>v{currentVersion}</Text>
           </View>
         </View>
 
         {/* 更新 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>更新</Text>
+        <View style={[styles.section, { marginBottom: tv.space.lg, paddingHorizontal: tv.space.xl, paddingVertical: tv.space.lg, marginHorizontal: tv.space.xl }]}>
+          <Text style={[styles.sectionLabel, { fontSize: tv.font.base, marginBottom: tv.space.md }]}>更新</Text>
           <TVFocusable
             style={styles.optionBtn}
             onPress={checkUpdate}
@@ -146,35 +188,37 @@ export default function TVSettingsScreen() {
                 <ActivityIndicator
                   color={TV.color.accent}
                 />
-                <Text style={styles.optionBtnText}>检查中…</Text>
+                <Text style={[styles.optionBtnText, { fontSize: tv.font.xl }]}>检查中…</Text>
               </>
             ) : downloadProgress !== null ? (
-              <Text style={styles.optionBtnText}>
+              <Text style={[styles.optionBtnText, { fontSize: tv.font.xl }]}>
                 下载中 {downloadProgress}%
               </Text>
             ) : (
-              <Text style={styles.optionBtnText}>检查更新</Text>
+              <Text style={[styles.optionBtnText, { fontSize: tv.font.xl }]}>检查更新</Text>
             )}
           </TVFocusable>
         </View>
 
         {/* 封面图清晰度 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>封面图清晰度</Text>
-          <View style={styles.optionRow}>
+        <View style={[styles.section, { marginBottom: tv.space.lg, paddingHorizontal: tv.space.xl, paddingVertical: tv.space.lg, marginHorizontal: tv.space.xl }]}>
+          <Text style={[styles.sectionLabel, { fontSize: tv.font.base, marginBottom: tv.space.md }]}>封面图清晰度</Text>
+          <View style={[styles.optionRow, { gap: tv.space.md }]}>
             <TVFocusable
               style={[
                 styles.option,
+                { paddingHorizontal: tv.space.xxl - tv.space.sm, paddingVertical: tv.space.sm },
                 coverQuality === 'hd' && styles.optionActive,
               ]}
               onPress={() => setCoverQuality('hd')}
               scaleFactor={1}
             >
-              <Text
-                style={[
-                  styles.optionText,
-                  coverQuality === 'hd' && styles.optionTextActive,
-                ]}
+                <Text
+                  style={[
+                    styles.optionText,
+                    { fontSize: tv.font.lg },
+                    coverQuality === 'hd' && styles.optionTextActive,
+                  ]}
               >
                 高清
               </Text>
@@ -182,16 +226,18 @@ export default function TVSettingsScreen() {
             <TVFocusable
               style={[
                 styles.option,
+                { paddingHorizontal: tv.space.xxl - tv.space.sm, paddingVertical: tv.space.sm },
                 coverQuality === 'normal' && styles.optionActive,
               ]}
               onPress={() => setCoverQuality('normal')}
               scaleFactor={1}
             >
-              <Text
-                style={[
-                  styles.optionText,
-                  coverQuality === 'normal' && styles.optionTextActive,
-                ]}
+                <Text
+                  style={[
+                    styles.optionText,
+                    { fontSize: tv.font.lg },
+                    coverQuality === 'normal' && styles.optionTextActive,
+                  ]}
               >
                 普通
               </Text>
@@ -200,17 +246,17 @@ export default function TVSettingsScreen() {
         </View>
 
         {/* 默认播放清晰度 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>默认播放清晰度</Text>
-          <View style={styles.optionRow}>
+        <View style={[styles.section, { marginBottom: tv.space.lg, paddingHorizontal: tv.space.xl, paddingVertical: tv.space.lg, marginHorizontal: tv.space.xl }]}>
+          <Text style={[styles.sectionLabel, { fontSize: tv.font.base, marginBottom: tv.space.md }]}>默认播放清晰度</Text>
+          <View style={[styles.optionRow, { gap: tv.space.md }]}>
             {QN_OPTIONS.map(q => (
               <TVFocusable
                 key={q.qn}
-                style={[styles.option, defaultQn === q.qn && styles.optionActive]}
+                style={[styles.option, { paddingHorizontal: tv.space.xxl - tv.space.sm, paddingVertical: tv.space.sm }, defaultQn === q.qn && styles.optionActive]}
                 onPress={() => setDefaultQn(q.qn)}
                 scaleFactor={1}
               >
-                <Text style={[styles.optionText, defaultQn === q.qn && styles.optionTextActive]}>
+                <Text style={[styles.optionText, { fontSize: tv.font.lg }, defaultQn === q.qn && styles.optionTextActive]}>
                   {q.label}
                 </Text>
               </TVFocusable>
@@ -676,6 +722,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
     borderRadius: TV.radius.sm,
+    gap: TV.space.xs,
   },
   optionBtnText: { fontSize: TV.font.xl, color: TV.color.accent, fontWeight: '600' },
   optionRow: { flexDirection: 'row', gap: TV.space.md },

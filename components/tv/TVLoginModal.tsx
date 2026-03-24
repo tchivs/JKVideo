@@ -12,6 +12,7 @@ import { generateQRCode, pollQRCode, getUserInfo } from '../../services/bilibili
 import { useAuthStore } from '../../store/authStore';
 import { TVFocusable } from './TVFocusable';
 import { TV } from '../../constants/tvTheme';
+import { useTVTheme } from '../../hooks/useTVTheme';
 
 interface Props {
   visible: boolean;
@@ -24,6 +25,7 @@ interface Props {
  * 不含保存相册、打开 bilibili 协议等手机专属功能。
  */
 export function TVLoginModal({ visible, onClose }: Props) {
+  const tv = useTVTheme();
   const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [qrKey, setQrKey] = useState<string | null>(null);
   const [status, setStatus] = useState<
@@ -63,7 +65,7 @@ export function TVLoginModal({ visible, onClose }: Props) {
       cleanup();
     }
     return cleanup;
-  }, [visible]);
+  }, [cleanup, fetchQR, visible]);
 
   // 轮询扫码状态
   useEffect(() => {
@@ -96,32 +98,32 @@ export function TVLoginModal({ visible, onClose }: Props) {
       }
     }, 2000);
     return cleanup;
-  }, [qrKey, status]);
+  }, [cleanup, login, onClose, qrKey, setProfile, status]);
 
   return (
     <Modal
       visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <View style={styles.overlay}>
-        <View style={styles.card}>
+        transparent
+        animationType="fade"
+        onRequestClose={onClose}
+      >
+        <View style={styles.overlay}>
+        <View style={[styles.card, { padding: tv.space.xxl, minWidth: Math.max(280, 340 * (tv.font.base / TV.font.base)) }]}>
           {/* 标题 */}
-          <Text style={styles.title}>扫码登录</Text>
+          <Text style={[styles.title, { fontSize: tv.font.xl, marginBottom: tv.space.xl }]}>扫码登录</Text>
 
           {/* 二维码区域 */}
           {status === 'loading' && (
-            <ActivityIndicator
-              size="large"
-              color={TV.color.accent}
-              style={styles.loader}
-            />
-          )}
+              <ActivityIndicator
+                size="large"
+                color={TV.color.accent}
+                style={[styles.loader, { marginVertical: tv.space.xl + tv.space.sm }]}
+              />
+            )}
 
           {(status === 'waiting' || status === 'scanned') && qrUrl && (
             <>
-              <View style={styles.qrContainer}>
+              <View style={[styles.qrContainer, { width: Math.max(180, tv.font.heading * 7), height: Math.max(180, tv.font.heading * 7), padding: tv.space.md, marginBottom: tv.space.lg }]}>
                 <Image
                   source={{
                     uri: `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qrUrl)}&size=400x400`,
@@ -130,7 +132,7 @@ export function TVLoginModal({ visible, onClose }: Props) {
                   resizeMode="contain"
                 />
               </View>
-              <Text style={styles.hint}>
+              <Text style={[styles.hint, { fontSize: tv.font.base, marginBottom: tv.space.xl }]}>
                 {status === 'scanned'
                   ? '✅ 扫描成功，请在手机上确认'
                   : '使用 哔哩哔哩 APP 扫描二维码'}
@@ -140,29 +142,29 @@ export function TVLoginModal({ visible, onClose }: Props) {
 
           {status === 'error' && (
             <>
-              <View style={styles.errorBox}>
+              <View style={[styles.errorBox, { marginVertical: tv.space.xl, gap: tv.space.sm }]}>
                 <Ionicons name="alert-circle" size={48} color={TV.color.danger} />
-                <Text style={styles.errorText}>二维码已过期</Text>
+                <Text style={[styles.errorText, { fontSize: tv.font.base }]}>二维码已过期</Text>
               </View>
               <TVFocusable
-                style={styles.refreshBtn}
+                style={[styles.refreshBtn, { paddingHorizontal: tv.space.xl, paddingVertical: tv.space.md - 2, marginBottom: tv.space.md }]}
                 onPress={fetchQR}
                 hasTVPreferredFocus
                 scaleFactor={1.03}
               >
-                <Text style={styles.refreshBtnText}>刷新二维码</Text>
+                <Text style={[styles.refreshBtnText, { fontSize: tv.font.base }]}>刷新二维码</Text>
               </TVFocusable>
             </>
           )}
 
           {/* 关闭按钮 */}
           <TVFocusable
-            style={styles.closeBtn}
+            style={[styles.closeBtn, { paddingHorizontal: tv.space.lg, paddingVertical: tv.space.sm }]}
             onPress={onClose}
             scaleFactor={1}
             hasTVPreferredFocus={status === 'waiting'}
           >
-            <Text style={styles.closeBtnText}>关闭</Text>
+            <Text style={[styles.closeBtnText, { fontSize: tv.font.base }]}>关闭</Text>
           </TVFocusable>
         </View>
       </View>

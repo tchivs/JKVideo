@@ -1,9 +1,10 @@
 import * as React from 'react';
-import { View, Text, StyleSheet, ViewStyle } from 'react-native';
+import { Text, StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { TVFadeIn } from './TVFadeIn';
 import { TVButton } from './TVButton';
 import { TV } from '../../constants/tvTheme';
+import { useTVTheme } from '../../hooks/useTVTheme';
 
 export interface TVEmptyStateProps {
   /** 提示主标题 */
@@ -32,18 +33,29 @@ export const TVEmptyState: React.FC<TVEmptyStateProps> = ({
   retryText = '重试',
   style,
 }) => {
+  const tv = useTVTheme();
+
   return (
-    <TVFadeIn style={[styles.container, style]}>
-      <Ionicons name={icon} size={64} color={TV.color.textTertiary} />
-      <Text style={styles.title}>{title}</Text>
-      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+    <TVFadeIn
+      style={[
+        styles.container,
+        {
+          paddingVertical: Math.max(48, tv.space.xxl + tv.space.lg),
+          paddingHorizontal: tv.layout.contentPaddingH,
+        },
+        style,
+      ]}
+    >
+      <Ionicons name={icon} size={tv.font.heading * 2} color={TV.color.textTertiary} />
+      <Text style={[styles.title, { fontSize: tv.font.xl, marginTop: tv.space.md, marginBottom: tv.space.sm }]}>{title}</Text>
+      {hint ? <Text style={[styles.hint, { fontSize: tv.font.lg, marginBottom: tv.space.xl }]}>{hint}</Text> : null}
       
       {onRetry && (
         <TVButton
           title={retryText}
           onPress={onRetry}
           variant="primary"
-          style={styles.retryBtn}
+          style={{ marginTop: tv.space.md }}
         />
       )}
     </TVFadeIn>

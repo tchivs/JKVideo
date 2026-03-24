@@ -25,7 +25,10 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { usePlaylistStore } from '../../store/playlistStore';
 import { formatCount } from '../../utils/format';
 import { proxyImageUrl } from '../../utils/imageUrl';
+import { buildSpaceRoute } from '../../utils/tvSpaceRoute';
 import { TV } from '../../constants/tvTheme';
+import { useTVLayout } from '../../hooks/useTVLayout';
+import { useTVTheme } from '../../hooks/useTVTheme';
 
 type InfoTab = 'intro' | 'comments';
 
@@ -34,6 +37,8 @@ type InfoTab = 'intro' | 'comments';
  * 左侧 3/4 播放器，右侧 1/4 信息面板（简介/合集/评论/推荐）。
  */
 export default function TVVideoDetailScreen() {
+  const { isCompact } = useTVLayout();
+  const tv = useTVTheme();
   const { bvid } = useLocalSearchParams<{ bvid: string }>();
   const router = useRouter();
   const {
@@ -68,6 +73,9 @@ export default function TVVideoDetailScreen() {
   } = useRelatedVideos();
 
   const { playNext, playPrev, videos: playlist } = usePlaylistStore();
+  const ownerMid = video?.owner?.mid;
+  const ownerName = video?.owner?.name ?? '未知UP主';
+  const ownerFace = video?.owner?.face ?? '';
 
   const handleLike = useCallback(async (action: 1 | 2) => {
     const success = await likeVideo(bvid as string, action);
@@ -94,11 +102,11 @@ export default function TVVideoDetailScreen() {
 
   useEffect(() => {
     loadRelated();
-  }, []);
+  }, [loadRelated]);
 
   useEffect(() => {
     if (video?.aid) loadComments();
-  }, [video?.aid, commentSort]);
+  }, [loadComments, video?.aid]);
 
   useEffect(() => {
     if (!video?.cid) return;
@@ -115,7 +123,7 @@ export default function TVVideoDetailScreen() {
       ownerName: video.owner?.name ?? '',
       duration: video.duration ?? 0,
     });
-  }, [video?.bvid]);
+  }, [addHistory, bvid, video]);
 
   // 节流保存播放进度（每 10 秒保存一次）
   const handleTimeUpdate = useCallback(
@@ -247,9 +255,9 @@ export default function TVVideoDetailScreen() {
   const autoPlayAvail = !!nextEpId || !!fallbackNextId;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isCompact && styles.containerCompact]}>
       {/* 左侧播放器 */}
-      <View style={styles.playerSection}>
+      <View style={[styles.playerSection, isCompact && styles.playerSectionCompact]}>
         <TVVideoPlayer
           playData={playData}
           qualities={qualities}
@@ -276,19 +284,19 @@ export default function TVVideoDetailScreen() {
           onPlayNext={handlePlayNext}
           onPlayPrev={handlePlayPrev}
           onLike={handleLike}
-          uploader={video?.owner ? { mid: String(video.owner.mid), name: video.owner.name, face: proxyImageUrl(video.owner.face) } : undefined}
-          onUploaderPress={(mid) => router.push(`/space/${mid}`)}
+          uploader={ownerMid != null ? { mid: String(ownerMid), name: ownerName, face: proxyImageUrl(ownerFace) } : undefined}
+          onUploaderPress={(mid) => router.push(buildSpaceRoute(mid))}
         />
       </View>
 
       {/* 右侧信息面板 */}
-      <View style={styles.infoSection}>
+      <View style={[styles.infoSection, isCompact && styles.infoSectionCompact]}>
         {videoLoading ? (
           <TVLoading style={{ flex: 1, justifyContent: 'center' }} />
         ) : videoError ? (
-          <View style={styles.errorContainer}>
+          <View style={[styles.errorContainer, { padding: tv.space.xl, gap: tv.space.md }]}>
             <Ionicons name="warning-outline" size={36} color={TV.color.danger} />
-            <Text style={styles.errorText}>加载失败：{videoError}</Text>
+            <Text style={[styles.errorText, { fontSize: tv.font.md }]}>加载失败：{videoError}</Text>
           </View>
         ) : video ? (
           <>
@@ -297,6 +305,7 @@ export default function TVVideoDetailScreen() {
               <TVFocusable
                 style={[
                   styles.tabItem,
+                  { paddingHorizontal: tv.space.md, paddingVertical: Math.max(8, tv.space.sm - 2), borderRadius: tv.radius.sm },
                   infoTab === 'intro' && styles.tabItemActive,
                 ]}
                 onPress={() => setInfoTab('intro')}
@@ -305,6 +314,7 @@ export default function TVVideoDetailScreen() {
                 <Text
                   style={[
                     styles.tabText,
+                    { fontSize: tv.font.sm },
                     infoTab === 'intro' && styles.tabTextActive,
                   ]}
                 >
@@ -314,6 +324,7 @@ export default function TVVideoDetailScreen() {
               <TVFocusable
                 style={[
                   styles.tabItem,
+                  { paddingHorizontal: tv.space.md, paddingVertical: Math.max(8, tv.space.sm - 2), borderRadius: tv.radius.sm },
                   infoTab === 'comments' && styles.tabItemActive,
                 ]}
                 onPress={() => setInfoTab('comments')}
@@ -322,6 +333,7 @@ export default function TVVideoDetailScreen() {
                 <Text
                   style={[
                     styles.tabText,
+                    { fontSize: tv.font.sm },
                     infoTab === 'comments' && styles.tabTextActive,
                   ]}
                 >
@@ -332,28 +344,31 @@ export default function TVVideoDetailScreen() {
 
             {infoTab === 'intro' ? (
               <ScrollView
-                style={styles.scrollArea}
+                style={[styles.scrollArea, { paddingHorizontal: tv.space.sm, paddingTop: tv.space.xs }]}
                 showsVerticalScrollIndicator={false}
               >
                 {/* UP 主信息 */}
                 <TVFocusable 
-                  style={styles.upRow}
-                  onPress={() => router.push(`/space/${video.owner.mid}`)}
+                  style={[styles.upRow, { gap: tv.space.xs, marginBottom: tv.space.xs, padding: Math.max(6, tv.space.xs), borderRadius: tv.radius.md }]}
+                  onPress={() => {
+                    if (ownerMid == null) return;
+                    router.push(buildSpaceRoute(ownerMid));
+                  }}
                   scaleFactor={1.03}
                 >
                   <Image
-                    source={{ uri: proxyImageUrl(video.owner.face) }}
+                    source={{ uri: proxyImageUrl(ownerFace) }}
                     style={styles.avatar}
                   />
-                  <Text style={styles.upName} numberOfLines={1}>{video.owner.name}</Text>
+                  <Text style={[styles.upName, { fontSize: tv.font.sm }]} numberOfLines={1}>{ownerName}</Text>
                   <Ionicons name="chevron-forward" size={16} color={TV.color.textSecondary} style={{ marginLeft: 'auto' }} />
                 </TVFocusable>
 
                 {/* 标题 */}
-                <Text style={styles.title}>{video.title}</Text>
+                <Text style={[styles.title, { fontSize: tv.font.base, lineHeight: Math.round(tv.font.base * 1.35), marginBottom: tv.space.xs }]}>{video.title}</Text>
 
                 {/* 统计 */}
-                <View style={styles.statsRow}>
+                <View style={[styles.statsRow, { gap: tv.space.sm, marginBottom: tv.space.xs }]}>
                   <StatBadge icon="play" count={video.stat?.view ?? 0} />
                   <StatBadge icon="heart" count={video.stat?.like ?? 0} />
                   <StatBadge icon="star" count={video.stat?.favorite ?? 0} />
@@ -365,18 +380,18 @@ export default function TVVideoDetailScreen() {
 
                 {/* 简介 */}
                 {!!video.desc && (
-                  <Text style={styles.desc}>{video.desc}</Text>
+                  <Text style={[styles.desc, { fontSize: tv.font.sm, lineHeight: Math.round(tv.font.sm * 1.5), marginBottom: tv.space.sm, paddingTop: 4 }]}>{video.desc}</Text>
                 )}
 
                 {/* 合集/剧集列表 */}
                 {hasEpisodes && (
-                  <View style={styles.seasonBox}>
-                    <View style={styles.sectionHeader}>
-                      <Text style={styles.sectionTitle}>
+                  <View style={[styles.seasonBox, { marginBottom: tv.space.sm, paddingTop: tv.space.xs }]}>
+                    <View style={[styles.sectionHeader, { marginBottom: tv.space.xs }]}>
+                      <Text style={[styles.sectionTitle, { fontSize: tv.font.sm }]}>
                         合集 · {video.ugc_season!.title} ({video.ugc_season!.ep_count}集)
                       </Text>
                       <TVFocusable
-                        style={styles.sortToggle}
+                        style={[styles.sortToggle, { paddingHorizontal: tv.space.xs, paddingVertical: 4, borderRadius: tv.radius.pill }]}
                         onPress={toggleEpisodesOrder}
                         scaleFactor={1.1}
                         accessibilityLabel={episodesReversed ? '正序排列' : '倒序排列'}
@@ -399,6 +414,7 @@ export default function TVVideoDetailScreen() {
                         </Animated.View>
                         <Text style={[
                           styles.sortToggleText,
+                          { fontSize: Math.max(11, tv.font.xs) },
                           episodesReversed && styles.sortToggleTextActive,
                         ]}>
                           {episodesReversed ? '倒序' : '正序'}
@@ -409,15 +425,16 @@ export default function TVVideoDetailScreen() {
                       horizontal
                       showsHorizontalScrollIndicator={false}
                     >
-                      <View style={styles.episodeRow}>
+                      <View style={[styles.episodeRow, { gap: Math.max(6, tv.space.xs - 2) }]}>
                         {displayedEpisodes.map((ep, i) => (
                           <TVFocusable
                             key={ep.bvid}
-                            style={[
-                              styles.episodeChip,
-                              ep.bvid === bvid &&
-                                styles.episodeChipActive,
-                            ]}
+                              style={[
+                                styles.episodeChip,
+                                { paddingHorizontal: tv.space.sm, paddingVertical: Math.max(5, tv.space.xs - 2), borderRadius: tv.radius.sm },
+                                ep.bvid === bvid &&
+                                  styles.episodeChipActive,
+                              ]}
                             onPress={() =>
                               router.replace(`/video/${ep.bvid}`)
                             }
@@ -427,6 +444,7 @@ export default function TVVideoDetailScreen() {
                             <Text
                               style={[
                                 styles.episodeText,
+                                { fontSize: Math.max(11, tv.font.xs) },
                                 ep.bvid === bvid &&
                                   styles.episodeTextActive,
                               ]}
@@ -443,14 +461,14 @@ export default function TVVideoDetailScreen() {
 
                 {/* 分P选集 */}
                 {hasPages && (
-                  <View style={styles.seasonBox}>
-                    <View style={styles.sectionHeader}>
-                      <Text style={styles.sectionTitle}>
+                  <View style={[styles.seasonBox, { marginBottom: tv.space.sm, paddingTop: tv.space.xs }]}>
+                    <View style={[styles.sectionHeader, { marginBottom: tv.space.xs }]}>
+                      <Text style={[styles.sectionTitle, { fontSize: tv.font.sm }]}>
                         选集 ({pages.length}P)
                       </Text>
                       {pages.length > 10 && (
                         <TVFocusable
-                          style={styles.sortToggle}
+                          style={[styles.sortToggle, { paddingHorizontal: tv.space.xs, paddingVertical: 4, borderRadius: tv.radius.pill }]}
                           onPress={togglePagesOrder}
                           scaleFactor={1.1}
                           accessibilityLabel={pagesReversed ? '正序排列' : '倒序排列'}
@@ -473,6 +491,7 @@ export default function TVVideoDetailScreen() {
                           </Animated.View>
                           <Text style={[
                             styles.sortToggleText,
+                            { fontSize: Math.max(11, tv.font.xs) },
                             pagesReversed && styles.sortToggleTextActive,
                           ]}>
                             {pagesReversed ? '倒序' : '正序'}
@@ -484,7 +503,7 @@ export default function TVVideoDetailScreen() {
                       horizontal
                       showsHorizontalScrollIndicator={false}
                     >
-                      <View style={styles.episodeRow}>
+                      <View style={[styles.episodeRow, { gap: Math.max(6, tv.space.xs - 2) }]}>
                         {displayedPages.map((p, i) => {
                           const realIndex = pagesReversed ? pages.length - 1 - i : i;
                           return (
@@ -492,6 +511,7 @@ export default function TVVideoDetailScreen() {
                               key={p.cid}
                               style={[
                                 styles.episodeChip,
+                                { paddingHorizontal: tv.space.sm, paddingVertical: Math.max(5, tv.space.xs - 2), borderRadius: tv.radius.sm },
                                 realIndex === currentPage &&
                                   styles.episodeChipActive,
                               ]}
@@ -503,9 +523,10 @@ export default function TVVideoDetailScreen() {
                               <Text
                                 style={[
                                   styles.episodeText,
+                                  { fontSize: Math.max(11, tv.font.xs) },
                                   realIndex === currentPage &&
                                     styles.episodeTextActive,
-                                ]}
+                              ]}
                                 numberOfLines={1}
                               >
                                 P{realIndex + 1} {p.part}
@@ -519,11 +540,11 @@ export default function TVVideoDetailScreen() {
                 )}
 
                 {/* 推荐视频 */}
-                <Text style={styles.sectionTitle}>推荐视频</Text>
+                <Text style={[styles.sectionTitle, { fontSize: tv.font.sm }]}>推荐视频</Text>
                 {relatedVideos.map(item => (
                   <TVFocusable
                     key={item.bvid}
-                    style={styles.relatedCard}
+                    style={[styles.relatedCard, { marginBottom: tv.space.xs, borderRadius: tv.radius.sm }]}
                     onPress={() =>
                       router.push(`/video/${item.bvid}` as any)
                     }
@@ -534,14 +555,14 @@ export default function TVVideoDetailScreen() {
                       style={styles.relatedThumb}
                       resizeMode="cover"
                     />
-                    <View style={styles.relatedInfo}>
+                      <View style={[styles.relatedInfo, { padding: Math.max(6, tv.space.xs) }]}>
                       <Text
-                        style={styles.relatedTitle}
+                          style={[styles.relatedTitle, { fontSize: tv.font.xs, lineHeight: Math.round(tv.font.xs * 1.35) }]}
                         numberOfLines={2}
                       >
                         {item.title}
                       </Text>
-                      <Text style={styles.relatedMeta} numberOfLines={1}>
+                      <Text style={[styles.relatedMeta, { fontSize: 10 }]} numberOfLines={1}>
                         {item.owner?.name ?? ''} ·{' '}
                         {formatCount(item.stat?.view ?? 0)}播放
                       </Text>
@@ -555,7 +576,7 @@ export default function TVVideoDetailScreen() {
             ) : (
               /* 评论 Tab */
               <FlatList
-                style={styles.scrollArea}
+                style={[styles.scrollArea, { paddingHorizontal: tv.space.sm, paddingTop: tv.space.xs }]}
                 data={comments}
                 keyExtractor={c => String(c.rpid)}
                 showsVerticalScrollIndicator={false}
@@ -564,10 +585,11 @@ export default function TVVideoDetailScreen() {
                 }}
                 onEndReachedThreshold={0.3}
                 ListHeaderComponent={
-                  <View style={styles.sortRow}>
+                  <View style={[styles.sortRow, { gap: tv.space.xs, marginBottom: tv.space.sm }]}>
                     <TVFocusable
                       style={[
                         styles.sortBtn,
+                        { paddingHorizontal: Math.max(10, tv.space.sm - 2), paddingVertical: 4, borderRadius: tv.radius.pill },
                         commentSort === 2 && styles.sortBtnActive,
                       ]}
                       onPress={() => setCommentSort(2)}
@@ -576,6 +598,7 @@ export default function TVVideoDetailScreen() {
                       <Text
                         style={[
                           styles.sortBtnText,
+                          { fontSize: tv.font.xs },
                           commentSort === 2 &&
                             styles.sortBtnTextActive,
                         ]}
@@ -586,6 +609,7 @@ export default function TVVideoDetailScreen() {
                     <TVFocusable
                       style={[
                         styles.sortBtn,
+                        { paddingHorizontal: Math.max(10, tv.space.sm - 2), paddingVertical: 4, borderRadius: tv.radius.pill },
                         commentSort === 0 && styles.sortBtnActive,
                       ]}
                       onPress={() => setCommentSort(0)}
@@ -594,6 +618,7 @@ export default function TVVideoDetailScreen() {
                       <Text
                         style={[
                           styles.sortBtnText,
+                          { fontSize: tv.font.xs },
                           commentSort === 0 &&
                             styles.sortBtnTextActive,
                         ]}
@@ -604,7 +629,7 @@ export default function TVVideoDetailScreen() {
                   </View>
                 }
                 renderItem={({ item: c }) => (
-                  <View style={styles.commentItem}>
+                  <View style={[styles.commentItem, { marginBottom: tv.space.sm, gap: tv.space.xs }]}>
                     <Image
                       source={{
                         uri: proxyImageUrl(c.member?.avatar ?? ''),
@@ -612,10 +637,10 @@ export default function TVVideoDetailScreen() {
                       style={styles.cmtAvatar}
                     />
                     <View style={styles.cmtBody}>
-                      <Text style={styles.cmtName}>
+                      <Text style={[styles.cmtName, { fontSize: Math.max(11, tv.font.xs) }]}>
                         {c.member?.uname ?? ''}
                       </Text>
-                      <Text style={styles.cmtContent}>
+                      <Text style={[styles.cmtContent, { fontSize: tv.font.xs, lineHeight: Math.round(tv.font.xs * 1.4) }]}>
                         {c.content?.message ?? ''}
                       </Text>
                       <View style={styles.cmtMeta}>
@@ -624,7 +649,7 @@ export default function TVVideoDetailScreen() {
                           size={12}
                           color={TV.color.textDisabled}
                         />
-                        <Text style={styles.cmtLike}>
+                        <Text style={[styles.cmtLike, { fontSize: 10 }]}>
                           {formatCount(c.like ?? 0)}
                         </Text>
                       </View>
@@ -647,10 +672,11 @@ export default function TVVideoDetailScreen() {
 }
 
 function StatBadge({ icon, count }: { icon: string; count: number }) {
+  const tv = useTVTheme();
   return (
     <View style={styles.stat}>
       <Ionicons name={icon as any} size={13} color={TV.color.textTertiary} />
-      <Text style={styles.statText}>{formatCount(count)}</Text>
+      <Text style={[styles.statText, { fontSize: Math.max(11, tv.font.xs) }]}>{formatCount(count)}</Text>
     </View>
   );
 }
@@ -661,10 +687,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: TV.color.bg,
   },
+  containerCompact: {
+    flexDirection: 'column',
+  },
   playerSection: { flex: 3 },
+  playerSectionCompact: {
+    flex: 0,
+    minHeight: 240,
+  },
   infoSection: {
     flex: 1,
     backgroundColor: TV.color.surface,
+  },
+  infoSectionCompact: {
+    flex: 1,
   },
   errorContainer: {
     flex: 1,

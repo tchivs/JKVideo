@@ -8,6 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { TVFocusable } from './TVFocusable';
 import { TV } from '../../constants/tvTheme';
+import { useTVTheme } from '../../hooks/useTVTheme';
 
 interface Props {
   hlsUrl: string;
@@ -37,16 +38,17 @@ export function TVLivePlayer({
   currentQn = 0,
   onQualityChange,
 }: Props): React.JSX.Element {
+  const tv = useTVTheme();
   const { width: SCREEN_W, height: SCREEN_H } = useWindowDimensions();
   const VIDEO_H = SCREEN_H; // TV 全高
 
   if (!isLive || !hlsUrl) {
-    return (
-      <View style={[styles.container, { width: SCREEN_W, height: VIDEO_H }]}>
-        <Ionicons name="tv-outline" size={48} color={TV.color.textDisabled} />
-        <Text style={styles.offlineText}>暂未开播或无法获取直播流</Text>
-      </View>
-    );
+      return (
+        <View style={[styles.container, { width: SCREEN_W, height: VIDEO_H }]}> 
+          <Ionicons name="tv-outline" size={48} color={TV.color.textDisabled} />
+        <Text style={[styles.offlineText, { fontSize: tv.font.md, marginTop: tv.space.sm }]}>暂未开播或无法获取直播流</Text>
+        </View>
+      );
   }
 
   return (
@@ -76,6 +78,7 @@ function NativeTVLivePlayer({
   currentQn: number;
   onQualityChange?: (qn: number) => void;
 }): React.JSX.Element {
+  const tv = useTVTheme();
   const Video = require('react-native-video').default;
 
   const [showControls, setShowControls] = useState(true);
@@ -96,7 +99,7 @@ function NativeTVLivePlayer({
     return () => {
       if (hideTimer.current) clearTimeout(hideTimer.current);
     };
-  }, []);
+  }, [resetHideTimer]);
 
   const togglePause = useCallback(() => {
     setPaused(p => !p);
@@ -131,7 +134,7 @@ function NativeTVLivePlayer({
 
       {buffering && (
         <View style={styles.bufferingOverlay} pointerEvents="none">
-          <Text style={styles.bufferingText}>缓冲中...</Text>
+          <Text style={[styles.bufferingText, { fontSize: tv.font.sm }]}>缓冲中...</Text>
         </View>
       )}
 
@@ -150,7 +153,7 @@ function NativeTVLivePlayer({
       {error && (
         <View style={styles.errorContainer} pointerEvents="none">
           <Ionicons name="warning-outline" size={48} color={TV.color.danger} />
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={[styles.errorText, { fontSize: tv.font.md, marginTop: tv.space.xs }]}>{error}</Text>
         </View>
       )}
 
@@ -158,7 +161,7 @@ function NativeTVLivePlayer({
         <>
           {/* 中央暂停/播放 */}
           <View style={styles.centerBtn} pointerEvents="none">
-            <View style={styles.centerBtnBg}>
+            <View style={[styles.centerBtnBg, { width: Math.max(52, tv.font.heading * 2), height: Math.max(52, tv.font.heading * 2), borderRadius: Math.max(26, tv.font.heading) }]}>
               <Ionicons
                 name={paused ? 'play' : 'pause'}
                 size={36}
@@ -168,9 +171,9 @@ function NativeTVLivePlayer({
           </View>
 
           {/* 底部控制栏 */}
-          <View style={styles.bottomBar}>
+          <View style={[styles.bottomBar, { paddingHorizontal: tv.space.md, paddingBottom: tv.space.md, paddingTop: tv.space.xl }]}>
             <TVFocusable
-              style={styles.ctrlBtn}
+              style={[styles.ctrlBtn, { paddingHorizontal: tv.space.sm, paddingVertical: Math.max(6, tv.space.xs), borderRadius: tv.radius.sm }]}
               onPress={togglePause}
               scaleFactor={1.1}
             >
@@ -185,14 +188,14 @@ function NativeTVLivePlayer({
 
             {qualities.length > 0 && (
               <TVFocusable
-                style={styles.qualityBtn}
+                style={[styles.qualityBtn, { paddingHorizontal: tv.space.sm, paddingVertical: Math.max(6, tv.space.xs), borderRadius: tv.radius.sm }]}
                 onPress={() => {
                   setShowQualityPanel(true);
                   resetHideTimer();
                 }}
                 scaleFactor={1.1}
               >
-                <Text style={styles.qualityText}>
+                <Text style={[styles.qualityText, { fontSize: tv.font.xs }]}>
                   {currentQnDesc || '清晰度'}
                 </Text>
               </TVFocusable>
@@ -202,15 +205,16 @@ function NativeTVLivePlayer({
       )}
 
       {/* 清晰度选择面板 */}
-      {showQualityPanel && (
-        <View style={styles.qualityOverlay}>
-          <View style={styles.qualityPanel}>
-            <Text style={styles.qualityPanelTitle}>清晰度</Text>
+        {showQualityPanel && (
+          <View style={styles.qualityOverlay}>
+          <View style={[styles.qualityPanel, { paddingBottom: tv.space.md, minWidth: Math.max(180, 220 * (tv.font.base / TV.font.base)) }]}>
+            <Text style={[styles.qualityPanelTitle, { fontSize: tv.font.sm, paddingVertical: tv.space.sm } ]}>清晰度</Text>
             {qualities.map(q => (
               <TVFocusable
                 key={q.qn}
                 style={[
                   styles.qualityItem,
+                  { paddingHorizontal: tv.space.lg - 4, paddingVertical: tv.space.sm, borderRadius: tv.radius.sm },
                   currentQn === q.qn && styles.qualityItemActive,
                 ]}
                 onPress={() => {
@@ -223,6 +227,7 @@ function NativeTVLivePlayer({
                 <Text
                   style={[
                     styles.qualityItemText,
+                    { fontSize: tv.font.sm },
                     currentQn === q.qn && styles.qualityItemTextActive,
                   ]}
                 >
