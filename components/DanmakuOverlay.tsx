@@ -17,6 +17,10 @@ interface Props {
   areaRatio?: number;
   /** 屏蔽的弹幕模式，1=滚动 4=底部 5=顶部 */
   filterModes?: number[];
+  /** 播放倍速，弹幕飞行速度随之同步，默认 1 */
+  speed?: number;
+  /** 弹幕屏蔽关键词列表，包含关键词的弹幕将被过滤 */
+  blockKeywords?: string[];
 }
 
 const BASE_LANE_COUNT = 5;
@@ -40,6 +44,8 @@ export default function DanmakuOverlay({
   fontScale = 1,
   areaRatio = 1,
   filterModes = [],
+  speed = 1,
+  blockKeywords = [],
 }: Props) {
   const LANE_COUNT = Math.max(1, Math.round(BASE_LANE_COUNT * areaRatio));
   const LANE_H = Math.round(BASE_LANE_H * fontScale);
@@ -86,7 +92,8 @@ export default function DanmakuOverlay({
     const window = 0.4;
     const candidates = danmakus.filter(d => {
       const key = `${d.time}_${d.text}`;
-      if (filterModes.includes(d.mode)) return false; // 过滤屏蔽模式
+      if (filterModes.includes(d.mode)) return false;
+      if (blockKeywords.length > 0 && blockKeywords.some(kw => d.text.includes(kw))) return false;
       return d.time >= currentTime - window && d.time <= currentTime + window && !activated.current.has(key);
     });
 
@@ -106,7 +113,7 @@ export default function DanmakuOverlay({
 
         const charWidth = Math.min(item.fontSize, 22) * 0.8;
         const textWidth = item.text.length * charWidth;
-        const duration = 8000;
+        const duration = Math.round(8000 / Math.max(speed, 0.25));
         // Lane becomes available when tail of this danmaku clears the right edge of screen
         // tail starts at screenWidth, text has width textWidth
         // tail clears left edge at duration ms
@@ -134,7 +141,7 @@ export default function DanmakuOverlay({
         newItems.push({ id, item, lane: -1, tx: new Animated.Value(0), opacity });
 
         Animated.sequence([
-          Animated.delay(2000),
+          Animated.delay(Math.round(2000 / Math.max(speed, 0.25))),
           Animated.timing(opacity, { toValue: 0, duration: 500, useNativeDriver: true }),
         ]).start(() => {
           if (mountedRef.current) setActiveDanmakus(prev => prev.filter(d => d.id !== id));

@@ -175,6 +175,7 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
       downKeyAction,
       sponsorBlockEnabled,
       sponsorBlockCategories,
+      dmBlockKeywords,
     } = useSettingsStore();
 
     const [error, setError] = useState<string | null>(null);
@@ -431,6 +432,8 @@ export const TVVideoPlayer = forwardRef<TVVideoPlayerRef, Props>(
             fontScale={dmFontScale}
             areaRatio={dmAreaRatio}
             filterModes={dmFilterModes}
+            speed={speed}
+            blockKeywords={dmBlockKeywords}
           />
         )}
 
