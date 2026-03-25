@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { TVVideoCard } from '../components/tv/TVVideoCard';
 import { TVFocusable } from '../components/tv/TVFocusable';
 import { TVSkeleton } from '../components/tv/TVSkeleton';
+import { TVPageShell } from '../components/tv/TVPageShell';
 import { getPopularVideos, getRegionVideos } from '../services/bilibili';
 import type { VideoItem } from '../services/types';
 import { TV } from '../constants/tvTheme';
@@ -95,17 +96,10 @@ export default function TVRankingScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <TVPageShell>
+      <View style={styles.container}>
       {/* 顶栏 */}
-      <View style={[styles.header, { paddingHorizontal: contentPaddingH, paddingTop: headerTopPadding }]}>
-        <TVFocusable
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          scaleFactor={1.1}
-          accessibilityLabel="返回"
-        >
-          <Ionicons name="chevron-back" size={24} color={TV.color.textSecondary} />
-        </TVFocusable>
+      <View style={[styles.header, { paddingHorizontal: contentPaddingH, paddingTop: headerTopPadding }]} accessibilityRole="header">
         <Text style={styles.headerTitle}>排行榜</Text>
       </View>
 
@@ -179,7 +173,8 @@ export default function TVRankingScreen() {
           }
         />
       )}
-    </View>
+      </View>
+    </TVPageShell>
   );
 }
 
@@ -193,12 +188,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     paddingTop: TV.layout.headerPaddingV + TV.space.xl,
     gap: TV.space.md - 2,
-  },
-  backBtn: {
-    padding: TV.space.sm - 2,
-    borderRadius: TV.radius.sm,
-    borderWidth: 2,
-    borderColor: 'transparent',
   },
   headerTitle: { fontSize: TV.font.heading, fontWeight: '800', color: TV.color.white },
   categoryBar: {

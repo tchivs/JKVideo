@@ -11,18 +11,21 @@ import { TVFocusable } from '../components/tv/TVFocusable';
 import { TVVideoCard } from '../components/tv/TVVideoCard';
 import { TVSkeleton } from '../components/tv/TVSkeleton';
 import { TVEmptyState } from '../components/tv/TVEmptyState';
+import { TVPageShell } from '../components/tv/TVPageShell';
 import { getRegionVideos, BILI_REGIONS } from '../services/bilibili';
 import { usePlaylistStore } from '../store/playlistStore';
 import type { VideoItem } from '../services/types';
 import { TV } from '../constants/tvTheme';
 import { useTVLayout } from '../hooks/useTVLayout';
 
+type BiliRegion = (typeof BILI_REGIONS)[number];
+
 export default function PartitionScreen() {
   const router = useRouter();
   const { gridColumns, headerTopPadding, isCompact } = useTVLayout();
   const { setPlaylist } = usePlaylistStore();
   const regionSidebarWidth = isCompact ? 92 : 140;
-  const [selectedTid, setSelectedTid] = useState(BILI_REGIONS[0].tid);
+  const [selectedTid, setSelectedTid] = useState<number>(BILI_REGIONS[0].tid);
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -76,15 +79,16 @@ export default function PartitionScreen() {
   const selected = BILI_REGIONS.find(r => r.tid === selectedTid);
 
   return (
-    <View style={[styles.container, { paddingTop: headerTopPadding }]}>
+    <TVPageShell>
+      <View style={[styles.container, { paddingTop: headerTopPadding }]}> 
       {/* 分区侧边栏 */}
-      <View style={[styles.sidebar, { width: regionSidebarWidth, paddingTop: isCompact ? TV.space.lg : TV.space.xl }]}>
+      <View style={[styles.sidebar, { width: regionSidebarWidth, paddingTop: isCompact ? TV.space.lg : TV.space.xl }]}> 
         <Text style={styles.sidebarTitle}>分区</Text>
-        <FlatList
-          data={BILI_REGIONS as any}
-          keyExtractor={(item: any) => String(item.tid)}
+        <FlatList<BiliRegion>
+          data={BILI_REGIONS as unknown as BiliRegion[]}
+          keyExtractor={(item) => String(item.tid)}
           showsVerticalScrollIndicator={false}
-          renderItem={({ item }: { item: any }) => {
+          renderItem={({ item }) => {
             const isActive = item.tid === selectedTid;
             return (
               <TVFocusable
@@ -128,7 +132,8 @@ export default function PartitionScreen() {
           />
         )}
       </View>
-    </View>
+      </View>
+    </TVPageShell>
   );
 }
 

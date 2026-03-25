@@ -8,10 +8,10 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { TVFocusable } from '../components/tv/TVFocusable';
 import { TVButton } from '../components/tv/TVButton';
 import { TVEmptyState } from '../components/tv/TVEmptyState';
+import { TVPageShell } from '../components/tv/TVPageShell';
 import { useHistoryStore, type HistoryItem } from '../store/historyStore';
 import { proxyImageUrl } from '../utils/imageUrl';
 import { formatDuration } from '../utils/format';
@@ -87,18 +87,11 @@ export default function TVHistoryScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingHorizontal: contentPaddingH, paddingTop: headerTopPadding }]}>
-        <TVFocusable
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          scaleFactor={1.1}
-          accessibilityLabel="返回"
-        >
-          <Ionicons name="chevron-back" size={24} color={TV.color.textSecondary} />
-        </TVFocusable>
-        <Text style={styles.headerTitle}>观看历史</Text>
-        <View style={{ flex: 1 }} />
+    <TVPageShell>
+      <View style={styles.container}>
+        <View style={[styles.header, { paddingHorizontal: contentPaddingH, paddingTop: headerTopPadding }]} accessibilityRole="header">
+          <Text style={styles.headerTitle}>观看历史</Text>
+          <View style={{ flex: 1 }} />
         {items.length > 0 && (
           <TVButton
             title="清空"
@@ -116,7 +109,7 @@ export default function TVHistoryScreen() {
             }
           />
         )}
-      </View>
+        </View>
 
       {items.length === 0 ? (
         <TVEmptyState
@@ -138,7 +131,8 @@ export default function TVHistoryScreen() {
           removeClippedSubviews
         />
       )}
-    </View>
+      </View>
+    </TVPageShell>
   );
 }
 
@@ -152,12 +146,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     paddingTop: TV.layout.headerPaddingV + TV.space.xl,
     gap: TV.space.md - 2,
-  },
-  backBtn: {
-    padding: TV.space.sm - 2,
-    borderRadius: TV.radius.sm,
-    borderWidth: 2,
-    borderColor: 'transparent',
   },
   headerTitle: { fontSize: TV.font.heading, fontWeight: '800', color: TV.color.white },
   listContent: { padding: TV.layout.listPadding },

@@ -6,6 +6,7 @@ import { TVFocusable } from '../../components/tv/TVFocusable';
 import { TVVideoCard } from '../../components/tv/TVVideoCard';
 import { TVLoading } from '../../components/tv/TVLoading';
 import { TVEmptyState } from '../../components/tv/TVEmptyState';
+import { TVPageShell } from '../../components/tv/TVPageShell';
 import { getUserSpaceInfo, getUserSpaceVideos } from '../../services/bilibili';
 import { usePlaylistStore } from '../../store/playlistStore';
 import { proxyImageUrl } from '../../utils/imageUrl';
@@ -14,11 +15,13 @@ import { runWithInFlightGuard } from '../../utils/inFlightGuard';
 import { normalizeSpaceMidParam } from '../../utils/tvSpaceRoute';
 import type { UserSpaceInfo, VideoItem } from '../../services/types';
 import { TV } from '../../constants/tvTheme';
+import { useTVLayout } from '../../hooks/useTVLayout';
 
 export default function TVSpaceScreen() {
   const { mid } = useLocalSearchParams<{ mid?: string | string[] }>();
   const router = useRouter();
   const { setPlaylist } = usePlaylistStore();
+  const { gridColumns } = useTVLayout();
   const routeMid = normalizeSpaceMidParam(mid);
 
   const [info, setInfo] = useState<UserSpaceInfo | null>(null);
@@ -85,18 +88,9 @@ export default function TVSpaceScreen() {
   ), [router, videos, hasMore, routeMid, setPlaylist]);
 
   const renderHeader = () => (
-    <View style={styles.header}>
-      <TVFocusable
-        style={styles.backBtn}
-        onPress={() => router.back()}
-        scaleFactor={1.1}
-        accessibilityLabel="返回"
-      >
-        <Ionicons name="arrow-back" size={32} color={TV.color.textPrimary} />
-      </TVFocusable>
-      
+    <View style={styles.header} accessibilityRole="header">
       {loadingTop ? (
-        <ActivityIndicator size="small" color={TV.color.accent} style={{ marginLeft: TV.space.lg }} />
+        <ActivityIndicator size="small" color={TV.color.accent} />
       ) : info ? (
         <View style={styles.profile}>
           <Image source={{ uri: proxyImageUrl(info.face) }} style={styles.avatar} />
@@ -114,39 +108,41 @@ export default function TVSpaceScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      {renderHeader()}
-      
-      {!loadingTop && videos.length === 0 && !loadingList ? (
-        <TVEmptyState title="暂无投稿" hint="该 UP 主还没有投稿视频" />
-      ) : (
-        <FlatList
-          data={videos}
-          keyExtractor={(item, index) => item.bvid || `space-video-${index}`}
-          numColumns={5}
-          contentContainerStyle={styles.listContent}
-          columnWrapperStyle={styles.gridRow}
-          showsVerticalScrollIndicator={false}
-          renderItem={renderItem}
-          onEndReached={() => {
-            if (hasMore && !loadingListRef.current) loadVideos(pnRef.current);
-          }}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={
-            hasMore ? (
-              <TVFocusable
-                style={styles.loadMoreBtn}
-                onPress={() => loadVideos(pnRef.current)}
-                onFocus={() => loadVideos(pnRef.current)}
-                scaleFactor={1.05}
-              >
-                {loadingList ? <TVLoading /> : <Text style={styles.loadMoreText}>加载下一页</Text>}
-              </TVFocusable>
-            ) : null
-          }
-        />
-      )}
-    </View>
+    <TVPageShell>
+      <View style={styles.container}>
+        {renderHeader()}
+        
+        {!loadingTop && videos.length === 0 && !loadingList ? (
+          <TVEmptyState title="暂无投稿" hint="该 UP 主还没有投稿视频" />
+        ) : (
+          <FlatList
+            data={videos}
+            keyExtractor={(item, index) => item.bvid || `space-video-${index}`}
+            numColumns={gridColumns}
+            contentContainerStyle={styles.listContent}
+            columnWrapperStyle={styles.gridRow}
+            showsVerticalScrollIndicator={false}
+            renderItem={renderItem}
+            onEndReached={() => {
+              if (hasMore && !loadingListRef.current) loadVideos(pnRef.current);
+            }}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={
+              hasMore ? (
+                <TVFocusable
+                  style={styles.loadMoreBtn}
+                  onPress={() => loadVideos(pnRef.current)}
+                  onFocus={() => loadVideos(pnRef.current)}
+                  scaleFactor={1.05}
+                >
+                  {loadingList ? <TVLoading /> : <Text style={styles.loadMoreText}>加载下一页</Text>}
+                </TVFocusable>
+              ) : null
+            }
+          />
+        )}
+      </View>
+    </TVPageShell>
   );
 }
 
@@ -162,15 +158,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: TV.color.surface,
-  },
-  backBtn: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: TV.color.surfaceLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: TV.space.xl,
   },
   profile: {
     flexDirection: 'row',

@@ -16,6 +16,7 @@ import { TVEmptyState } from '../components/tv/TVEmptyState';
 import { TVLoading } from '../components/tv/TVLoading';
 import { TVButton } from '../components/tv/TVButton';
 import { TVSkeleton } from '../components/tv/TVSkeleton';
+import { TVPageShell } from '../components/tv/TVPageShell';
 import { useSearch } from '../hooks/useSearch';
 import { useHistoryStore } from '../store/historyStore';
 import { getSearchSquare, type SearchHotItem } from '../services/bilibili';
@@ -98,18 +99,10 @@ export default function TVSearchScreen() {
   }, [trending]);
 
   return (
-    <View style={styles.container}>
+    <TVPageShell>
+      <View style={styles.container}>
       {/* 搜索栏 */}
-      <View style={[styles.header, { paddingHorizontal: contentPaddingH, paddingTop: headerTopPadding }]}>
-        <TVFocusable
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          scaleFactor={1.1}
-          accessibilityLabel="返回"
-        >
-          <Ionicons name="chevron-back" size={24} color={TV.color.textSecondary} />
-        </TVFocusable>
-
+      <View style={[styles.header, { paddingHorizontal: contentPaddingH, paddingTop: headerTopPadding }]} accessibilityRole="header">
         <TVFocusable
           style={[styles.inputWrap, editingKeyword && styles.inputWrapActive]}
           onPress={() => {
@@ -220,7 +213,7 @@ export default function TVSearchScreen() {
       )}
 
       {/* 搜索结果 */}
-      <View style={[styles.sortRow, { paddingHorizontal: contentPaddingH }]}> 
+      <View style={[styles.sortRow, { paddingHorizontal: contentPaddingH }]}>
         {SORT_OPTIONS.map(option => {
           const selected = option.value === sortOrder;
           return (
@@ -267,7 +260,8 @@ export default function TVSearchScreen() {
           loading && results.length > 0 ? <TVLoading /> : null
         }
       />
-    </View>
+      </View>
+    </TVPageShell>
   );
 }
 
@@ -281,12 +275,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     paddingTop: TV.layout.headerPaddingV + TV.space.xl,
     gap: TV.space.md - 2,
-  },
-  backBtn: {
-    padding: TV.space.sm - 2,
-    borderRadius: TV.radius.sm,
-    borderWidth: 2,
-    borderColor: 'transparent',
   },
   inputWrap: {
     flex: 1,

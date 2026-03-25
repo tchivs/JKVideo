@@ -13,6 +13,8 @@ export const TV = {
     surfaceAlt: '#1a1a1a',
     /** 输入框 / 二级面板 */
     surfaceLight: '#2a2a2a',
+    /** 选中态 / 高亮背景 (10% 白) */
+    surfaceActive: 'rgba(255,255,255,0.1)',
     /** 分割线 */
     border: '#333',
     /** 主视觉色 */

@@ -1,42 +1,19 @@
-import React, { useEffect, useMemo, useCallback, useState } from 'react';
-import {
-  View,
-  StyleSheet,
-  Text,
-  FlatList,
-  Image,
-} from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useEffect, useMemo, useCallback, useState, useRef } from 'react';
+import { View, StyleSheet, Text, FlatList } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TVVideoCard } from '../components/tv/TVVideoCard';
 import { TVLiveCard } from '../components/tv/TVLiveCard';
 import { TVFocusable } from '../components/tv/TVFocusable';
-import { TVLoginModal } from '../components/tv/TVLoginModal';
+import { TVSidebar } from '../components/tv/TVSidebar';
 import { HeroBackdrop } from '../components/tv/HeroBackdrop';
 import { useVideoList } from '../hooks/useVideoList';
 import { useLiveList } from '../hooks/useLiveList';
-import { useAuthStore } from '../store/authStore';
-import { proxyImageUrl } from '../utils/imageUrl';
 import type { VideoItem, LiveRoom } from '../services/types';
 import { getDynamicFeeds } from '../services/bilibili';
 import { TV } from '../constants/tvTheme';
 import { useTVLayout } from '../hooks/useTVLayout';
-
-type HomeMode = 'recommend' | 'hot' | 'live';
-
-const HOME_MODE_ITEMS = [
-  { key: 'recommend' as const, label: '推荐', icon: 'sparkles-outline', color: TV.color.accent },
-  { key: 'hot' as const, label: '热门', icon: 'flame-outline', color: TV.color.hot },
-  { key: 'live' as const, label: '直播', icon: 'radio-outline', color: TV.color.premium },
-];
-
-const NAV_ITEMS = [
-  { key: 'history', label: '历史', icon: 'time-outline', route: '/history', color: TV.color.success },
-  { key: 'favorites', label: '收藏', icon: 'star-outline', route: '/favorites', color: TV.color.gold },
-  { key: 'following', label: '追番', icon: 'heart-outline', route: '/following', color: TV.color.hot },
-  { key: 'partition', label: '分区', icon: 'grid-outline', route: '/partition', color: TV.color.info },
-  { key: 'ranking', label: '排行', icon: 'trophy-outline', route: '/ranking', color: TV.color.textPrimary },
-];
+import { isHomeMode, type HomeMode } from './sidebarConfig';
 
 /**
  * TV 首页：十字泳道 (Leanback UI) 终极重构版。
@@ -44,40 +21,49 @@ const NAV_ITEMS = [
  */
 export default function TVHomeScreen(): React.JSX.Element {
   const router = useRouter();
-  const { sidebarWidth, rowCardWidth, isCompact } = useTVLayout();
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const { rowCardWidth, isCompact } = useTVLayout();
 
   // -- 数据源 Hook --
   const { pages, loading, load } = useVideoList();
   const { rooms, loading: liveLoading, load: liveLoad } = useLiveList();
-  const { isLoggedIn, face } = useAuthStore();
-  const [homeMode, setHomeMode] = useState<HomeMode>('recommend');
+  const [homeMode, setHomeMode] = useState<HomeMode>(isHomeMode(mode) ? mode : 'recommend');
 
   const [dynamicItems, setDynamicItems] = useState<VideoItem[]>([]);
   const [dynamicOffset, setDynamicOffset] = useState('');
   const [dynamicLoading, setDynamicLoading] = useState(false);
+  const dynamicOffsetRef = useRef('');
+  const dynamicLoadingRef = useRef(false);
   
-  const [showLogin, setShowLogin] = useState(false);
-
   // -- 沉浸式焦点项 (Hero Backdrop) --
   const [heroActiveItem, setHeroActiveItem] = useState<VideoItem | LiveRoom | null>(null);
 
+  useEffect(() => {
+    if (isHomeMode(mode)) {
+      setHomeMode(mode);
+    }
+  }, [mode]);
+
   // 读取所有管线的数据
   const loadDynamic = useCallback(async (isRefresh = false) => {
-    if (dynamicLoading) return;
+    if (dynamicLoadingRef.current) return;
+    dynamicLoadingRef.current = true;
     setDynamicLoading(true);
     try {
-      const targetOffset = isRefresh ? '' : dynamicOffset;
+      const targetOffset = isRefresh ? '' : dynamicOffsetRef.current;
       const { items, nextOffset } = await getDynamicFeeds(targetOffset);
       if (items.length > 0) {
         setDynamicItems(prev => isRefresh ? items : [...prev, ...items]);
         setDynamicOffset(nextOffset);
+        dynamicOffsetRef.current = nextOffset;
       }
     } catch (e) {
       console.warn('Load dynamic feeds failed', e);
     } finally {
+      dynamicLoadingRef.current = false;
       setDynamicLoading(false);
     }
-  }, [dynamicOffset, dynamicLoading]);
+  }, []);
 
   useEffect(() => {
     load();
@@ -136,91 +122,7 @@ export default function TVHomeScreen(): React.JSX.Element {
       {/* 背景层：视差沉浸海报 */}
       <HeroBackdrop activeItem={heroActiveItem} />
 
-      {/* 左侧导航栏 - 精简模式 */}
-      <View style={[styles.sidebar, { width: sidebarWidth }]}>
-        <Text style={styles.logo}>JK</Text>
-
-        {HOME_MODE_ITEMS.map(tab => {
-          const isActive = tab.key === homeMode;
-          return (
-            <TVFocusable
-              key={tab.key}
-              style={[
-                styles.sidebarItem,
-                { width: sidebarWidth - TV.space.lg },
-                isActive && { backgroundColor: `rgba(255,255,255,0.1)` },
-              ]}
-              onPress={() => setHomeMode(tab.key)}
-              scaleFactor={1.1}
-              borderColor={tab.color}
-              accessibilityLabel={tab.label}
-            >
-              <Ionicons
-                name={tab.icon as any}
-                size={22}
-                color={isActive ? tab.color : TV.color.textTertiary}
-              />
-              <Text
-                style={[
-                  styles.sidebarText,
-                  isActive && { color: tab.color, fontWeight: '600' },
-                ]}
-              >
-                {tab.label}
-              </Text>
-            </TVFocusable>
-          );
-        })}
-
-        <View style={[styles.sidebarDivider, { width: sidebarWidth - TV.space.lg }]} />
-
-        {NAV_ITEMS.map(tab => (
-          <TVFocusable
-            key={tab.key}
-            style={[styles.sidebarItem, { width: sidebarWidth - TV.space.lg }]}
-            onPress={() => router.push(tab.route as any)}
-            scaleFactor={1.1}
-            borderColor={tab.color}
-            accessibilityLabel={tab.label}
-          >
-            <Ionicons name={tab.icon as any} size={22} color={TV.color.textTertiary} />
-            <Text style={styles.sidebarText}>{tab.label}</Text>
-          </TVFocusable>
-        ))}
-
-        <View style={{ flex: 1 }} />
-
-        <TVFocusable
-          style={[styles.sidebarItem, { width: sidebarWidth - TV.space.lg }]}
-          onPress={() => router.push('/settings' as any)}
-          scaleFactor={1.1}
-          accessibilityLabel="设置"
-        >
-          <Ionicons name="settings-outline" size={22} color={TV.color.textTertiary} />
-          <Text style={styles.sidebarText}>设置</Text>
-        </TVFocusable>
-
-        <TVFocusable
-          style={[styles.sidebarItem, { width: sidebarWidth - TV.space.lg }]}
-          onPress={() => {
-            if (!isLoggedIn) setShowLogin(true);
-          }}
-          scaleFactor={1.1}
-          accessibilityLabel={isLoggedIn ? '已登录' : '登录'}
-        >
-          {isLoggedIn && face ? (
-            <Image
-              source={{ uri: proxyImageUrl(face) }}
-              style={styles.avatar}
-            />
-          ) : (
-            <Ionicons name="person-circle-outline" size={26} color={TV.color.textTertiary} />
-          )}
-          <Text style={styles.sidebarText}>
-            {isLoggedIn ? '已登录' : '登录'}
-          </Text>
-        </TVFocusable>
-      </View>
+      <TVSidebar currentHomeMode={homeMode} onHomeModeChange={setHomeMode} />
 
       {/* 右侧流体主控区：嵌套多行 TVHorizontalRow */}
       <View style={[styles.content, isCompact && styles.contentCompact]}>
@@ -303,11 +205,6 @@ export default function TVHomeScreen(): React.JSX.Element {
           />
         )}
       </View>
-
-      <TVLoginModal
-        visible={showLogin}
-        onClose={() => setShowLogin(false)}
-      />
     </View>
   );
 }
@@ -317,45 +214,6 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     backgroundColor: TV.color.bg,
-  },
-  sidebar: {
-    backgroundColor: 'transparent',
-    paddingVertical: TV.space.lg,
-    alignItems: 'center',
-    zIndex: 10,
-    // 左栏加入一道阴影遮罩以便图标总能看清
-    shadowColor: '#000',
-    shadowOffset: { width: 4, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  logo: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: TV.color.white,
-    marginBottom: TV.space.xxl,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  sidebarItem: {
-    alignItems: 'center',
-    paddingVertical: TV.space.sm,
-    borderRadius: TV.radius.md,
-    marginBottom: TV.space.sm,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  sidebarText: {
-    fontSize: TV.font.xs,
-    color: TV.color.textTertiary,
-    marginTop: 4,
-  },
-  sidebarDivider: {
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    marginVertical: TV.space.sm,
   },
   mainFeedContent: {
     paddingTop: TV.space.md,
@@ -445,13 +303,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: TV.font.sm,
     paddingVertical: TV.space.lg,
-  },
-  avatar: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: TV.color.placeholder,
-    borderWidth: 2,
-    borderColor: 'transparent',
   },
 });

@@ -6,12 +6,12 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { TVFocusable } from '../components/tv/TVFocusable';
 import { TVVideoCard } from '../components/tv/TVVideoCard';
 import { TVEmptyState } from '../components/tv/TVEmptyState';
 import { TVLoading } from '../components/tv/TVLoading';
 import { TVSkeleton } from '../components/tv/TVSkeleton';
+import { TVPageShell } from '../components/tv/TVPageShell';
 import { getFavorites } from '../services/bilibili';
 import { useAuthStore } from '../store/authStore';
 import type { VideoItem } from '../services/types';
@@ -74,18 +74,11 @@ export default function TVFavoritesScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingHorizontal: contentPaddingH, paddingTop: headerTopPadding }]}>
-        <TVFocusable
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          scaleFactor={1.1}
-          accessibilityLabel="返回"
-        >
-          <Ionicons name="chevron-back" size={24} color={TV.color.textSecondary} />
-        </TVFocusable>
-        <Text style={styles.headerTitle}>我的收藏</Text>
-      </View>
+    <TVPageShell>
+      <View style={styles.container}>
+        <View style={[styles.header, { paddingHorizontal: contentPaddingH, paddingTop: headerTopPadding }]} accessibilityRole="header">
+          <Text style={styles.headerTitle}>我的收藏</Text>
+        </View>
 
       {!isLoggedIn ? (
         <TVEmptyState
@@ -121,7 +114,8 @@ export default function TVFavoritesScreen() {
           removeClippedSubviews
         />
       )}
-    </View>
+      </View>
+    </TVPageShell>
   );
 }
 
@@ -135,12 +129,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     paddingTop: TV.layout.headerPaddingV + TV.space.xl, // 头端下压释放更多暗房空间
     gap: TV.space.md - 2,
-  },
-  backBtn: {
-    padding: TV.space.sm - 2,
-    borderRadius: TV.radius.sm,
-    borderWidth: 2,
-    borderColor: 'transparent',
   },
   headerTitle: { fontSize: TV.font.heading, fontWeight: '800', color: TV.color.white },
   listContent: { padding: TV.layout.listPadding },

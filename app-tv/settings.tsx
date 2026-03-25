@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TVFocusable } from '../components/tv/TVFocusable';
 import { TVLoginModal } from '../components/tv/TVLoginModal';
+import { TVPageShell } from '../components/tv/TVPageShell';
 import { useAuthStore } from '../store/authStore';
 import { useSettingsStore, ALL_SB_CATEGORIES, type SponsorBlockCategory } from '../store/settingsStore';
 import { useHistoryStore } from '../store/historyStore';
@@ -150,20 +151,13 @@ export default function TVSettingsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingHorizontal: tv.layout.contentPaddingH, paddingVertical: tv.layout.headerPaddingV, gap: tv.space.md - 2 }]}>
-        <TVFocusable
-          onPress={() => router.back()}
-          style={[styles.backBtn, { padding: tv.space.sm - 2 }]}
-          scaleFactor={1.1}
-          accessibilityLabel="返回"
-        >
-          <Ionicons name="chevron-back" size={24} color={TV.color.textSecondary} />
-        </TVFocusable>
-        <Text style={[styles.headerTitle, { fontSize: tv.font.title }]}>设置</Text>
-      </View>
+    <TVPageShell>
+      <View style={styles.container}>
+        <View style={[styles.header, { paddingHorizontal: tv.layout.contentPaddingH, paddingVertical: tv.layout.headerPaddingV, gap: tv.space.md - 2 }]} accessibilityRole="header">
+          <Text style={[styles.headerTitle, { fontSize: tv.font.title }]}>设置</Text>
+        </View>
 
-      <ScrollView style={[styles.content, { paddingTop: tv.space.xl }]} showsVerticalScrollIndicator={false}>
+        <ScrollView style={[styles.content, { paddingTop: tv.space.xl }]} showsVerticalScrollIndicator={false}>
         {/* 版本信息 */}
         <View style={[styles.section, { marginBottom: tv.space.lg, paddingHorizontal: tv.space.xl, paddingVertical: tv.space.lg, marginHorizontal: tv.space.xl }]}>
           <Text style={[styles.sectionLabel, { fontSize: tv.font.base, marginBottom: tv.space.md }]}>版本信息</Text>
@@ -659,13 +653,14 @@ export default function TVSettingsScreen() {
           </TVFocusable>
         )}
         <View style={{ height: 80 }} />
-      </ScrollView>
+        </ScrollView>
 
-      <TVLoginModal
-        visible={showLogin}
-        onClose={() => setShowLogin(false)}
-      />
-    </View>
+        <TVLoginModal
+          visible={showLogin}
+          onClose={() => setShowLogin(false)}
+        />
+      </View>
+    </TVPageShell>
   );
 }
 
@@ -680,12 +675,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: TV.color.border,
     gap: TV.space.md - 2,
-  },
-  backBtn: {
-    padding: TV.space.sm - 2,
-    borderRadius: TV.radius.sm,
-    borderWidth: 2,
-    borderColor: 'transparent',
   },
   headerTitle: {
     fontSize: TV.font.title,

@@ -74,8 +74,8 @@ export const HeroBackdrop = React.memo(function HeroBackdrop({ activeItem }: Pro
       <LinearGradient
         colors={[
           TV.color.bg,
-          'rgba(15,15,15, 0.9)',
-          'rgba(15,15,15, 0.4)',
+          `${TV.color.bg}E6`,  // 90% opacity of bg
+          `${TV.color.bg}66`,  // 40% opacity of bg
           'transparent'
         ]}
         start={{ x: 0, y: 0.5 }}
@@ -87,7 +87,7 @@ export const HeroBackdrop = React.memo(function HeroBackdrop({ activeItem }: Pro
       <LinearGradient
         colors={[
           'transparent',
-          'rgba(15,15,15, 0.6)',
+          `${TV.color.bg}99`,  // 60% opacity of bg
           TV.color.bg
         ]}
         start={{ x: 0.5, y: 0 }}
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontWeight: '500',
-    color: '#CCC',
+    color: TV.color.textSecondary,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
